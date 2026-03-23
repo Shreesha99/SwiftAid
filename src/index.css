@@ -1,0 +1,68 @@
+/* src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Global Styles */
+body {
+  font-family: 'Inter', sans-serif;
+  color: #374151; /* Not pure black as requested */
+  background-color: #F1FAEE;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #1D3557;
+}
+
+/* Custom Scrollbar */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Animations */
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+.animate-pulse-slow {
+  animation: pulse 3s infinite;
+}
+
+/* Leaflet Overrides */
+@import './components/MapStyles.css';
+
+/* Responsive Shell Utilities */
+.phone-frame-inner {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safe Area Insets for Bottom Nav */
+nav {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 1rem) !important;
+}
+
+/* Card Shadows */
+.card-shadow {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+}
+
+/* Step Transitions are handled by Framer Motion in StepTransition.jsx */
+
+/* Performance: will-change */
+.animate-will-change {
+  will-change: transform, opacity;
+}

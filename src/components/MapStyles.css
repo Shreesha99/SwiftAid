@@ -1,0 +1,62 @@
+/* src/components/MapStyles.css */
+
+.leaflet-container {
+  border-radius: 16px;
+  font-family: 'Inter', sans-serif;
+  background: #f8f9fa;
+}
+
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+  margin-right: 16px !important;
+  margin-top: 100px !important; /* Move below floating top bar */
+}
+
+.leaflet-control-zoom a {
+  border-radius: 8px !important;
+  color: #1D3557 !important;
+  background-color: white !important;
+  border: none !important;
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  font-weight: bold !important;
+}
+
+.leaflet-control-zoom-in {
+  margin-bottom: 4px !important;
+}
+
+.leaflet-bar a:first-child {
+  border-top-left-radius: 8px !important;
+  border-top-right-radius: 8px !important;
+}
+
+.leaflet-bar a:last-child {
+  border-bottom-left-radius: 8px !important;
+  border-bottom-right-radius: 8px !important;
+}
+
+/* Hide default attribution for cleaner look as requested */
+.leaflet-control-attribution {
+  font-size: 9px !important;
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(4px);
+  border-radius: 4px 0 0 0;
+}
+
+/* Marker Animations */
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+.user-location-pulse {
+  animation: pulse 2s infinite;
+}
+
+/* Smooth transition for marker movement if using CSS */
+.leaflet-marker-icon {
+  transition: transform 0.6s linear;
+}

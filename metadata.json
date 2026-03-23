@@ -1,0 +1,5 @@
+{
+  "name": "Swift Aid",
+  "description": "Emergency ambulance booking service in Bengaluru",
+  "requestFramePermissions": ["geolocation"]
+}
