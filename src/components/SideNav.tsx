@@ -1,13 +1,17 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Home, Calendar, HelpCircle, User, ShieldCheck } from 'lucide-react';
+import Logo from './Logo';
 
 export default function SideNav() {
   const location = useLocation();
   
   // Hide on booking and tracking routes
-  const hideRoutes = ['/book', '/track'];
-  if (hideRoutes.some(route => location.pathname.startsWith(route))) return null;
+  const hideNav = ['/book', '/track'].some(route => 
+    location.pathname === route || 
+    location.pathname.startsWith(route + '/')
+  );
+  if (hideNav) return null;
 
   const navItems = [
     { path: '/', icon: Home, label: 'Home' },
@@ -30,6 +34,10 @@ export default function SideNav() {
       padding: '24px 16px',
       zIndex: 40,
     }}>
+      <div style={{ marginBottom: '32px', padding: '0 16px' }}>
+        <Logo size={32} showText />
+      </div>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {navItems.map((item) => (
           <NavLink

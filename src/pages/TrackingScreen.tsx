@@ -225,18 +225,41 @@ export default function TrackingScreen() {
         alignItems: 'center',
         pointerEvents: 'none',
       }}>
-        {/* Booking ID pill */}
-        <div style={{
-          background: 'white',
-          borderRadius: 20,
-          padding: '8px 16px',
-          fontSize: 13,
-          fontWeight: 600,
-          color: '#1D3557',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
-          pointerEvents: 'all',
-        }}>
-          SWF-{bookingId}
+        <div style={{ display: 'flex', gap: 8, pointerEvents: 'all' }}>
+          {/* Back button */}
+          <button
+            onClick={() => navigate('/')}
+            style={{
+              width: 40, height: 40,
+              borderRadius: '50%',
+              background: 'white',
+              border: 'none',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
+              fontSize: 18,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#1D3557',
+            }}
+          >
+            ←
+          </button>
+
+          {/* Booking ID pill */}
+          <div style={{
+            background: 'white',
+            borderRadius: 20,
+            padding: '8px 16px',
+            fontSize: 13,
+            fontWeight: 600,
+            color: '#1D3557',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
+            display: 'flex',
+            alignItems: 'center',
+          }}>
+            SWF-{bookingId}
+          </div>
         </div>
 
         {/* X button */}

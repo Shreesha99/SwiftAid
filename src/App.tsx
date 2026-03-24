@@ -24,8 +24,10 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const hideNavRoutes = ['/book', '/track'];
-  const shouldHideNav = hideNavRoutes.some(route => location.pathname.startsWith(route));
+  const shouldHideNav = ['/book', '/track'].some(route => 
+    location.pathname === route || 
+    location.pathname.startsWith(route + '/')
+  );
 
   return (
     <div id="app-root" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#ffffff' }}>

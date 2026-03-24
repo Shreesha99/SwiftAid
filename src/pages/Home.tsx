@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { hospitals } from '../data/hospitals';
 import { useAppStore } from '../store/useAppStore';
 import { createHospitalIcon, createUserIcon, ROTARY_LOGO_URL } from '../utils/mapHelpers';
+import Logo from '../components/Logo';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ export default function Home() {
       {/* Mobile Header */}
       {!isDesktop && (
         <header style={{ height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-          <h1 style={{ fontSize: '20px', fontWeight: 900, color: '#E63946' }}>Swift Aid</h1>
+          <Logo size={28} showText />
           <button 
             onClick={() => navigate('/profile')}
             style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#F9FAFB', border: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
