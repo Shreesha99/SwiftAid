@@ -14,6 +14,9 @@ export interface Booking {
     name: string;
     phone: string;
     vehicleNumber: string;
+    currentLocation: { lat: number; lng: number };
+    initialDistance: number;
+    initialEta: number;
   };
   rating?: number;
   feedback?: string;

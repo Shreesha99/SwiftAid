@@ -50,7 +50,9 @@ export default function ActiveBookingBar() {
       
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: '14px', fontWeight: 700 }}>Ambulance En Route</div>
-        <div style={{ fontSize: '12px', opacity: 0.9 }}>Tap to track live location</div>
+        <div style={{ fontSize: '12px', opacity: 0.9 }}>
+          Arriving in ~{activeBooking.driver?.initialEta || 8} min
+        </div>
       </div>
 
       <ChevronRight size={20} color="white" />

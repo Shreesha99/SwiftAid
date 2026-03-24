@@ -6,6 +6,7 @@ import L from 'leaflet';
 import { hospitals, Hospital } from '../data/hospitals';
 import { useAppStore } from '../store/useAppStore';
 import { createUserIcon, reverseGeocode, haversine } from '../utils/mapHelpers';
+import { getClosestAmbulance, formatEta, formatDistance } from '../utils/ambulanceHelpers';
 
 const EMERGENCY_TYPES = [
   { id: 'cardiac', label: 'Cardiac', icon: HeartPulse },
@@ -71,7 +72,9 @@ export default function BookingFlow() {
       return d1 < d2 ? prev : curr;
     });
 
+    const closestDriver = getClosestAmbulance(location.pos[0], location.pos[1]);
     const id = `SA-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    
     const newBooking = {
       id,
       status: 'Active' as const,
@@ -81,9 +84,12 @@ export default function BookingFlow() {
       hospital: hospitalToUse,
       ambulanceType,
       driver: {
-        name: 'Ravi Kumar',
-        phone: '+91 98765 00001',
-        vehicleNumber: 'KA-01-AB-1234'
+        name: closestDriver.name,
+        phone: closestDriver.phone,
+        vehicleNumber: closestDriver.vehicleNumber,
+        currentLocation: closestDriver.currentLocation,
+        initialDistance: closestDriver.distance,
+        initialEta: closestDriver.eta
       }
     };
 
@@ -272,11 +278,15 @@ export default function BookingFlow() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <span style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>Est. Arrival</span>
-                  <span style={{ fontSize: '16px', fontWeight: 700, color: '#10B981' }}>~8-12 min</span>
+                  <span style={{ fontSize: '16px', fontWeight: 700, color: '#10B981' }}>
+                    ~{formatEta(getClosestAmbulance(location.pos[0], location.pos[1]).eta)}
+                  </span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>Est. Fare</span>
-                  <span style={{ fontSize: '16px', fontWeight: 700, color: '#1D3557' }}>{ambulanceType === '108' ? 'FREE' : '₹850 – ₹1,150'}</span>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>Distance</span>
+                  <span style={{ fontSize: '16px', fontWeight: 700, color: '#1D3557' }}>
+                    {formatDistance(getClosestAmbulance(location.pos[0], location.pos[1]).distance)}
+                  </span>
                 </div>
               </div>
 

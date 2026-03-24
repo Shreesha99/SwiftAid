@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { hospitals, Hospital } from '../data/hospitals';
 import { useAppStore } from '../store/useAppStore';
 import { createHospitalIcon, createUserIcon, ROTARY_LOGO_URL } from '../utils/mapHelpers';
+import { getClosestAmbulance, formatEta } from '../utils/ambulanceHelpers';
 import Logo from '../components/Logo';
 
 function MapControls({ onLocateMe }: { onLocateMe: () => void }) {
@@ -89,7 +90,9 @@ export default function Home() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
               <span>BOOK AMBULANCE</span>
-              <span style={{ fontSize: '13px', fontWeight: 500, opacity: 0.9 }}>Nearest arrives in ~8min</span>
+              <span style={{ fontSize: '13px', fontWeight: 500, opacity: 0.9 }}>
+                Nearest arrives in ~{formatEta(getClosestAmbulance(userLocation[0], userLocation[1]).eta)}
+              </span>
             </div>
           </button>
 

@@ -184,11 +184,15 @@ export default function TrackingScreen() {
   const { bookings, cancelBooking, updateBookingStatus } = useAppStore();
   const booking = bookings.find(b => b.id === bookingId);
   
-  const [ambulancePos, setAmbulancePos] = useState<[number, number]>([12.9592, 77.6444]);
+  const [ambulancePos, setAmbulancePos] = useState<[number, number]>(
+    booking.driver?.currentLocation 
+      ? [booking.driver.currentLocation.lat, booking.driver.currentLocation.lng] 
+      : [12.9592, 77.6444]
+  );
   const [rotation, setRotation] = useState(0);
   const [route, setRoute] = useState<[number, number][]>([]);
-  const [eta, setEta] = useState(8);
-  const [initialEta] = useState(8);
+  const [eta, setEta] = useState(booking.driver?.initialEta || 8);
+  const [initialEta] = useState(booking.driver?.initialEta || 8);
   const [stepIndex, setStepIndex] = useState(0);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [isAutoCenter, setIsAutoCenter] = useState(true);
@@ -218,7 +222,9 @@ export default function TrackingScreen() {
   useEffect(() => {
     if (!booking) return;
 
-    const start: [number, number] = [12.9592, 77.6444];
+    const start: [number, number] = booking.driver?.currentLocation 
+      ? [booking.driver.currentLocation.lat, booking.driver.currentLocation.lng] 
+      : [12.9592, 77.6444];
     const end: [number, number] = [booking.userLocation?.lat || 12.9344, booking.userLocation?.lng || 77.6192];
 
     fetchRoute(start, end).then(coords => {
@@ -255,7 +261,7 @@ export default function TrackingScreen() {
           stepRef.current += 1;
           setStepIndex(stepRef.current);
           lastTimestampRef.current = timestamp;
-          setEta(Math.max(1, Math.ceil(8 * (1 - stepRef.current / coords.length))));
+          setEta(Math.max(1, Math.ceil(initialEta * (1 - stepRef.current / coords.length))));
         }
 
         rafRef.current = requestAnimationFrame(animate);
@@ -267,7 +273,7 @@ export default function TrackingScreen() {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [booking]);
+  }, [booking, initialEta]);
 
   if (!booking) return <div>Booking not found</div>;
 
@@ -501,7 +507,7 @@ export default function TrackingScreen() {
             fontSize: 12,
             fontWeight: 600,
           }}>
-            En Route
+            Closest Unit Dispatched
           </div>
         </div>
 
