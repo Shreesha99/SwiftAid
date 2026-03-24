@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Clock, ShieldCheck, Zap, AlertCircle, CheckCircle } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft, MapPin, Clock, ShieldCheck, Zap, AlertCircle, CheckCircle, HeartPulse, Droplets, Wind, Baby, Brain, AlertTriangle, Ambulance, Hospital as HospitalIcon } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import { hospitals } from '../data/hospitals';
+import { hospitals, Hospital } from '../data/hospitals';
 import { useAppStore } from '../store/useAppStore';
 import { createUserIcon, reverseGeocode, haversine } from '../utils/mapHelpers';
 
 const EMERGENCY_TYPES = [
-  { id: 'cardiac', label: 'Cardiac', emoji: '🫀' },
-  { id: 'trauma', label: 'Trauma', emoji: '🩸' },
-  { id: 'respiratory', label: 'Respiratory', emoji: '🫁' },
-  { id: 'maternity', label: 'Maternity', emoji: '🤰' },
-  { id: 'stroke', label: 'Stroke', emoji: '🧠' },
-  { id: 'other', label: 'Other', emoji: '🆘' },
+  { id: 'cardiac', label: 'Cardiac', icon: HeartPulse },
+  { id: 'trauma', label: 'Trauma', icon: Droplets },
+  { id: 'respiratory', label: 'Respiratory', icon: Wind },
+  { id: 'maternity', label: 'Maternity', icon: Baby },
+  { id: 'stroke', label: 'Stroke', icon: Brain },
+  { id: 'other', label: 'Other', icon: AlertTriangle },
 ];
 
 function LocationPicker({ position, setPosition, setAddress }: { 
@@ -38,6 +38,7 @@ function LocationPicker({ position, setPosition, setAddress }: {
 
 export default function BookingFlow() {
   const navigate = useNavigate();
+  const navLocation = useLocation();
   const { addBooking } = useAppStore();
   const [step, setStep] = useState(1);
   const [emergencyType, setEmergencyType] = useState('');
@@ -49,12 +50,22 @@ export default function BookingFlow() {
   const [note, setNote] = useState('');
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [bookingId, setBookingId] = useState('');
+  const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
+
+  useEffect(() => {
+    if (navLocation.state?.hospitalId) {
+      const hospital = hospitals.find(h => h.id === navLocation.state.hospitalId);
+      if (hospital) {
+        setSelectedHospital(hospital);
+      }
+    }
+  }, [navLocation.state]);
 
   const handleNext = () => setStep(prev => prev + 1);
   const handleBack = () => step > 1 ? setStep(prev => prev - 1) : navigate('/');
 
   const handleConfirm = () => {
-    const nearestHospital = hospitals.reduce((prev, curr) => {
+    const hospitalToUse = selectedHospital || hospitals.reduce((prev, curr) => {
       const d1 = haversine(location.pos[0], location.pos[1], prev.lat, prev.lng);
       const d2 = haversine(location.pos[0], location.pos[1], curr.lat, curr.lng);
       return d1 < d2 ? prev : curr;
@@ -67,7 +78,7 @@ export default function BookingFlow() {
       timestamp: new Date().toISOString(),
       emergencyType,
       userLocation: { lat: location.pos[0], lng: location.pos[1], address: location.address },
-      hospital: nearestHospital,
+      hospital: hospitalToUse,
       ambulanceType,
       driver: {
         name: 'Ravi Kumar',
@@ -89,8 +100,10 @@ export default function BookingFlow() {
           width: 80, height: 80, borderRadius: '50%',
           background: '#ECFDF5', margin: '0 auto 20px',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 40,
-        }}>🚑</div>
+          color: '#10B981',
+        }}>
+          <Ambulance size={40} />
+        </div>
         
         <h2 style={{ fontSize: 22, fontWeight: 700, color: '#1D3557' }}>
           Ambulance Dispatched
@@ -152,26 +165,26 @@ export default function BookingFlow() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
             <div className="emergency-grid">
               {EMERGENCY_TYPES.map(type => (
-                <button
-                  key={type.id}
-                  onClick={() => setEmergencyType(type.id)}
-                  style={{
-                    height: '80px',
-                    borderRadius: '16px',
-                    border: `2px solid ${emergencyType === type.id ? '#E63946' : '#F0F0F0'}`,
-                    background: emergencyType === type.id ? '#fef2f2' : 'white',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  <span style={{ fontSize: '24px' }}>{type.emoji}</span>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#1D3557' }}>{type.label}</span>
-                </button>
+                  <button
+                    key={type.id}
+                    onClick={() => setEmergencyType(type.id)}
+                    style={{
+                      height: '80px',
+                      borderRadius: '16px',
+                      border: `2px solid ${emergencyType === type.id ? '#E63946' : '#F0F0F0'}`,
+                      background: emergencyType === type.id ? '#fef2f2' : 'white',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <type.icon size={24} color={emergencyType === type.id ? '#E63946' : '#1D3557'} />
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#1D3557' }}>{type.label}</span>
+                  </button>
               ))}
             </div>
 
@@ -205,7 +218,7 @@ export default function BookingFlow() {
         {step === 2 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', height: '100%' }}>
             <div style={{ height: '260px', borderRadius: '16px', overflow: 'hidden', border: '1px solid #F0F0F0' }}>
-              <MapContainer center={location.pos} zoom={15} scrollWheelZoom={false}>
+              <MapContainer center={location.pos} zoom={15} scrollWheelZoom={true}>
                 <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
                 <LocationPicker 
                   position={location.pos} 
@@ -268,10 +281,17 @@ export default function BookingFlow() {
               </div>
 
               <div style={{ padding: '16px', background: '#F9FAFB', borderRadius: '12px', border: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '40px', height: '40px', background: 'white', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>🏥</div>
+                <div style={{ width: '40px', height: '40px', background: 'white', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <HospitalIcon size={20} color="#E63946" />
+                </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>Recommended Hospital</span>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#1D3557' }}>Manipal Hospital · 1.2km</span>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>
+                    {selectedHospital ? 'Selected Hospital' : 'Recommended Hospital'}
+                  </span>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#1D3557' }}>
+                    {selectedHospital ? selectedHospital.name : 'Manipal Hospital'} · 
+                    {selectedHospital ? `${haversine(location.pos[0], location.pos[1], selectedHospital.lat, selectedHospital.lng).toFixed(1)}km` : '1.2km'}
+                  </span>
                 </div>
               </div>
               

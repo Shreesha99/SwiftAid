@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, ChevronRight, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Calendar, MapPin, ChevronRight, Clock, CheckCircle, XCircle, AlertCircle, Hospital as HospitalIcon } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 
 export default function MyBookings() {
@@ -80,7 +80,9 @@ export default function MyBookings() {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                  <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', marginTop: '2px' }}>🏥</div>
+                  <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '2px' }}>
+                    <HospitalIcon size={10} color="#6B7280" />
+                  </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>Destination</span>
                     <span style={{ fontSize: '13px', fontWeight: 500, color: '#1D3557' }}>{booking.hospital.name}</span>

@@ -4,6 +4,7 @@ import BottomNav from './components/BottomNav';
 import SideNav from './components/SideNav';
 import TopBanner from './components/TopBanner';
 import PageLoader from './components/PageLoader';
+import ActiveBookingBar from './components/ActiveBookingBar';
 
 // Lazy load pages
 const Home = lazy(() => import('./pages/Home'));
@@ -51,6 +52,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       {!isDesktop && !shouldHideNav && <BottomNav />}
+      <ActiveBookingBar />
     </div>
   );
 }

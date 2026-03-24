@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, Phone, Mail, ShieldCheck, LogOut, ChevronRight, Edit2, Plus, Trash2 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
+import { ROTARY_LOGO_URL } from '../utils/mapHelpers';
 
 export default function Profile() {
   const { userProfile, updateProfile } = useAppStore();
@@ -53,7 +54,9 @@ export default function Profile() {
       {/* User Info */}
       <div style={{ padding: '24px', background: 'white', border: '1px solid #F0F0F0', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#F9FAFB', border: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>👤</div>
+          <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#F9FAFB', border: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <User size={32} color="#1D3557" />
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {isEditing ? (
               <input 
@@ -176,6 +179,30 @@ export default function Profile() {
           <LogOut size={20} />
           <span>Log Out</span>
         </button>
+      </div>
+
+      {/* Partner Badge */}
+      <div style={{ 
+        padding: '20px', 
+        background: '#F9FAFB', 
+        borderRadius: '16px', 
+        border: '1px solid #F0F0F0',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        marginTop: '12px'
+      }}>
+        <img 
+          src={ROTARY_LOGO_URL} 
+          alt="Rotary International" 
+          height="32" 
+          style={{ objectFit: 'contain' }}
+          onError={(e: any) => { e.target.style.display = 'none' }}
+        />
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '10px', fontWeight: 800, color: '#6B7280', textTransform: 'uppercase' }}>Official Partner</span>
+          <span style={{ fontSize: '14px', fontWeight: 700, color: '#1D3557' }}>Rotary International</span>
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Star, CheckCircle, ArrowLeft, MessageSquare, ShieldCheck } from 'lucide-react';
+import { Star, CheckCircle, ArrowLeft, MessageSquare, ShieldCheck, User } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 
 const RATING_TAGS = [
@@ -59,7 +59,9 @@ export default function RatingScreen() {
       <main style={{ flex: 1, padding: '0 20px 40px', display: 'flex', flexDirection: 'column', gap: '40px' }}>
         {/* Driver Info Summary */}
         <div style={{ padding: '20px', background: '#F9FAFB', borderRadius: '16px', border: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'white', border: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>👨‍✈️</div>
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'white', border: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <User size={24} color="#1D3557" />
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontWeight: 700, fontSize: '16px' }}>{booking.driver?.name}</span>
             <span style={{ fontSize: '13px', color: '#6B7280', fontWeight: 600 }}>{booking.driver?.vehicleNumber}</span>

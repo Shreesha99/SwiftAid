@@ -1,31 +1,35 @@
 import L from 'leaflet';
 
-export const ROTARY_LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/3/35/Rotary_International_Logo.svg";
+export const ROTARY_LOGO_URL = "https://www.rotary.org/sites/default/files/styles/w_600/public/rotary-logo-color-en.png";
 
 export const createUserIcon = () => {
   return L.divIcon({
     className: 'custom-user-icon',
     html: `
       <div style="
-        width: 20px;
-        height: 20px;
+        width: 24px;
+        height: 24px;
         background: #3B82F6;
-        border: 3px solid white;
+        border: 4px solid white;
         border-radius: 50%;
-        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+        box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.4), 0 4px 12px rgba(0,0,0,0.2);
         position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       ">
         <div style="
           position: absolute;
-          top: 0; left: 0; right: 0; bottom: 0;
+          top: -4px; left: -4px; right: -4px; bottom: -4px;
           border-radius: 50%;
           animation: pulse-ring 2s infinite;
-          background: rgba(59, 130, 246, 0.4);
+          background: rgba(59, 130, 246, 0.2);
         "></div>
+        <div style="width: 8px; height: 8px; background: white; border-radius: 50%;"></div>
       </div>
     `,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
   });
 };
 

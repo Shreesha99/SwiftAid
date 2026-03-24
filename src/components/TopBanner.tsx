@@ -24,7 +24,7 @@ export default function TopBanner() {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13px', fontWeight: 600, color: '#1D3557' }}>
-        <span style={{ color: '#6B7280', fontWeight: 500 }}>In partnership with</span>
+        <span style={{ color: '#6B7280', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>Official Partner</span>
         <img 
           src={ROTARY_LOGO_URL} 
           alt="Rotary International" 

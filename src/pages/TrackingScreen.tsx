@@ -2,8 +2,66 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import { Info, X, ChevronLeft, Ambulance, CheckCircle } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { createAmbulanceIcon, createUserIcon, createPulseIcon, fetchRoute, getBearing } from '../utils/mapHelpers';
+
+const EMERGENCY_TIPS: Record<string, { title: string; tips: string[] }> = {
+  cardiac: {
+    title: 'Cardiac Emergency Tips',
+    tips: [
+      'Call for help and stay on the line.',
+      'Check if the person is breathing and has a pulse.',
+      'If no pulse, start CPR (30 compressions, 2 breaths).',
+      'Locate and use an AED if one is nearby.'
+    ]
+  },
+  trauma: {
+    title: 'Trauma & Bleeding Tips',
+    tips: [
+      'Apply firm, direct pressure to any bleeding wounds.',
+      'Do not move the person unless they are in immediate danger.',
+      'Keep the person warm and lying flat.',
+      'Do not remove any impaled objects.'
+    ]
+  },
+  respiratory: {
+    title: 'Breathing Difficulty Tips',
+    tips: [
+      'Help the person sit upright in a comfortable position.',
+      'Loosen any tight clothing around the neck or chest.',
+      'Assist them with their prescribed inhaler if available.',
+      'Keep the person calm and encourage slow breaths.'
+    ]
+  },
+  maternity: {
+    title: 'Maternity Emergency Tips',
+    tips: [
+      'Help the mother lie on her left side.',
+      'Time the frequency and duration of contractions.',
+      'Prepare clean towels and blankets.',
+      'Stay calm and provide constant reassurance.'
+    ]
+  },
+  stroke: {
+    title: 'Stroke Emergency Tips',
+    tips: [
+      'Note the exact time symptoms first appeared.',
+      'Keep the person lying down on their side.',
+      'Do not give them anything to eat or drink.',
+      'Monitor their breathing closely.'
+    ]
+  },
+  other: {
+    title: 'Emergency Response Tips',
+    tips: [
+      'Stay on the line with the emergency dispatcher.',
+      'Keep the person calm, still, and reassured.',
+      'Clear a path for the paramedics to enter.',
+      'Gather any medications the person is currently taking.'
+    ]
+  }
+};
 
 function MapController({ 
   route, 
@@ -11,14 +69,16 @@ function MapController({
   rotation, 
   userLocation, 
   stepIndex,
-  onArrived
+  isAutoCenter,
+  onMapMove
 }: { 
   route: [number, number][], 
   ambulancePos: [number, number], 
   rotation: number,
   userLocation: [number, number],
   stepIndex: number,
-  onArrived: () => void
+  isAutoCenter: boolean,
+  onMapMove: () => void
 }) {
   const map = useMap();
   const markerRef = useRef<L.Marker | null>(null);
@@ -26,6 +86,20 @@ function MapController({
   const routeLineRef = useRef<L.Polyline | null>(null);
   const coveredLineRef = useRef<L.Polyline | null>(null);
   const initializedRef = useRef(false);
+
+  // Detect manual map movement
+  useEffect(() => {
+    if (!map) return;
+    const handleMove = () => {
+      onMapMove();
+    };
+    map.on('dragstart', handleMove);
+    map.on('zoomstart', handleMove);
+    return () => {
+      map.off('dragstart', handleMove);
+      map.off('zoomstart', handleMove);
+    };
+  }, [map, onMapMove]);
 
   useEffect(() => {
     if (!map || route.length === 0 || initializedRef.current) return;
@@ -96,10 +170,10 @@ function MapController({
       routeLineRef.current.setLatLngs(route.slice(stepIndex));
       coveredLineRef.current.setLatLngs(route.slice(0, stepIndex + 1));
     }
-    if (map) {
+    if (map && isAutoCenter) {
       map.panTo(ambulancePos, { animate: true, duration: 0.4 });
     }
-  }, [ambulancePos, rotation, stepIndex, route, map]);
+  }, [ambulancePos, rotation, stepIndex, route, map, isAutoCenter]);
 
   return null;
 }
@@ -117,6 +191,9 @@ export default function TrackingScreen() {
   const [initialEta] = useState(8);
   const [stepIndex, setStepIndex] = useState(0);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [isAutoCenter, setIsAutoCenter] = useState(true);
+  const [showTips, setShowTips] = useState(true);
+  const [isArrived, setIsArrived] = useState(false);
   
   const stepRef = useRef(0);
   const lastTimestampRef = useRef<number | null>(null);
@@ -159,6 +236,7 @@ export default function TrackingScreen() {
         if (i >= coords.length - 1) {
           setEta(0);
           updateBookingStatus(booking.id, 'Completed');
+          setIsArrived(true);
           return;
         }
 
@@ -235,7 +313,6 @@ export default function TrackingScreen() {
               background: 'white',
               border: 'none',
               boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
-              fontSize: 18,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -243,7 +320,7 @@ export default function TrackingScreen() {
               color: '#1D3557',
             }}
           >
-            ←
+            <ChevronLeft size={20} />
           </button>
 
           {/* Booking ID pill */}
@@ -271,7 +348,6 @@ export default function TrackingScreen() {
             background: 'white',
             border: 'none',
             boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
-            fontSize: 18,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -280,9 +356,48 @@ export default function TrackingScreen() {
             color: '#1D3557',
           }}
         >
-          ✕
+          <X size={20} />
         </button>
       </div>
+
+      {/* Emergency Tips overlay */}
+      {showTips && EMERGENCY_TIPS[booking.emergencyType] && (
+        <div style={{
+          position: 'absolute',
+          top: 80, left: 16, right: 16,
+          zIndex: 1000,
+          background: 'white',
+          borderRadius: 16,
+          padding: '16px 20px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+          border: '1px solid #F3F4F6',
+          animation: 'slideDown 0.3s ease-out',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Info size={18} color="#E63946" />
+              </div>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1D3557' }}>
+                {EMERGENCY_TIPS[booking.emergencyType].title}
+              </h3>
+            </div>
+            <button 
+              onClick={() => setShowTips(false)}
+              style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', padding: 4 }}
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <ul style={{ margin: 0, padding: '0 0 0 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {EMERGENCY_TIPS[booking.emergencyType].tips.map((tip, idx) => (
+              <li key={idx} style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.4, fontWeight: 500 }}>
+                {tip}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Map Background */}
       <div style={{ position: 'absolute', inset: 0 }}>
@@ -294,9 +409,64 @@ export default function TrackingScreen() {
             rotation={rotation}
             userLocation={[booking.userLocation?.lat || 12.9344, booking.userLocation?.lng || 77.6192]}
             stepIndex={stepIndex}
-            onArrived={() => {}}
+            isAutoCenter={isAutoCenter}
+            onMapMove={() => setIsAutoCenter(false)}
           />
         </MapContainer>
+      </div>
+
+      {/* Navigation Button (Re-center) */}
+      <div style={{
+        position: 'absolute',
+        bottom: '40vh',
+        right: 16,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+        zIndex: 1000,
+      }}>
+        {!showTips && EMERGENCY_TIPS[booking.emergencyType] && (
+          <button
+            onClick={() => setShowTips(true)}
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: '50%',
+              background: 'white',
+              border: 'none',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#1D3557',
+            }}
+          >
+            <Info size={24} />
+          </button>
+        )}
+        {!isAutoCenter && (
+          <button
+            onClick={() => setIsAutoCenter(true)}
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: '50%',
+              background: 'white',
+              border: 'none',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#E63946',
+            }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="3 11 22 2 13 21 11 13 3 11" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Compact Bottom Sheet */}
@@ -392,10 +562,10 @@ export default function TrackingScreen() {
               background: '#FEF2F2',
               border: 'none', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0, color: '#E63946', fontSize: 18,
+              flexShrink: 0, color: '#E63946',
             }}
           >
-            ✕
+            <X size={20} />
           </button>
         </div>
       </div>
@@ -444,6 +614,66 @@ export default function TrackingScreen() {
               }}
             >
               Keep booking
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Arrival Flow */}
+      {isArrived && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'rgba(0,0,0,0.7)',
+          zIndex: 3000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 20,
+        }}>
+          <div style={{
+            background: 'white',
+            width: '100%',
+            maxWidth: 400,
+            borderRadius: 24,
+            padding: '40px 24px',
+            textAlign: 'center',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+          }}>
+            <div style={{
+              width: 80, height: 80, background: '#ECFDF5',
+              borderRadius: '50%', margin: '0 auto 24px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#10B981',
+            }}>
+              <CheckCircle size={40} />
+            </div>
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: '#1D3557', marginBottom: 12 }}>
+              Ambulance Arrived
+            </h2>
+            <p style={{ color: '#6B7280', fontSize: 16, marginBottom: 32, lineHeight: 1.5 }}>
+              The ambulance has reached your location. Please proceed to the vehicle.
+            </p>
+            <button
+              onClick={() => navigate(`/rate/${bookingId}`)}
+              style={{
+                width: '100%', padding: '16px',
+                background: '#E63946', color: 'white',
+                border: 'none', borderRadius: 12,
+                fontSize: 16, fontWeight: 700, cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(230, 57, 70, 0.3)',
+              }}
+            >
+              Rate Experience
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              style={{
+                width: '100%', marginTop: 12, padding: '14px',
+                background: 'white', color: '#6B7280',
+                border: 'none', fontSize: 15, fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              Back to Home
             </button>
           </div>
         </div>
