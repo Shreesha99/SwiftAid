@@ -4,7 +4,7 @@ import { MapPin, Phone, ChevronRight, User, Search, Navigation, Filter, Ambulanc
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { hospitals, Hospital } from '../data/hospitals';
 import { useAppStore } from '../store/useAppStore';
-import { createHospitalIcon, createUserIcon, reverseGeocode, ROTARY_LOGO_URL } from '../utils/mapHelpers';
+import { createHospitalIcon, createUserIcon, reverseGeocode, haversine, ROTARY_LOGO_URL } from '../utils/mapHelpers';
 import { getClosestAmbulance, formatEta } from '../utils/ambulanceHelpers';
 import Logo from '../components/Logo';
 
@@ -60,11 +60,25 @@ export default function Home() {
 
   const specialities = ['All', ...new Set(hospitals.flatMap(h => h.specialities))];
 
-  const filteredHospitals = hospitals.filter(h => {
-    const matchesSearch = h.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesSpeciality = selectedSpeciality === 'All' || h.specialities.includes(selectedSpeciality);
-    return matchesSearch && matchesSpeciality;
-  });
+  const filteredHospitals = hospitals
+    .map(h => ({
+      ...h,
+      distance: haversine(userLocation[0], userLocation[1], h.lat, h.lng)
+    }))
+    .filter(h => {
+      const matchesSearch = h.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSpeciality = selectedSpeciality === 'All' || h.specialities.includes(selectedSpeciality);
+      return matchesSearch && matchesSpeciality;
+    })
+    .sort((a, b) => a.distance - b.distance);
+
+  const nearbyHospitals = [...hospitals]
+    .map(h => ({
+      ...h,
+      distance: haversine(userLocation[0], userLocation[1], h.lat, h.lng)
+    }))
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, 3);
 
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
@@ -99,12 +113,6 @@ export default function Home() {
       {!isDesktop && (
         <header style={{ height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
           <Logo size={28} showText />
-          <button 
-            onClick={() => navigate('/profile')}
-            style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#F9FAFB', border: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <User size={20} color="#1D3557" />
-          </button>
         </header>
       )}
 
@@ -154,12 +162,30 @@ export default function Home() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <h2 style={{ fontSize: '13px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>nearby hospitals</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {hospitals.slice(0, 3).map(h => (
-                <div key={h.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: 'white', border: '1px solid #F0F0F0', borderRadius: '12px' }}>
+              {nearbyHospitals.map(h => (
+                <div 
+                  key={h.id} 
+                  onClick={() => navigate('/book', { state: { hospitalId: h.id } })}
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    padding: '16px', 
+                    background: 'white', 
+                    border: '1px solid #F0F0F0', 
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = '#E63946'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = '#F0F0F0'}
+                >
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     <span style={{ fontWeight: 600 }}>{h.name}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ fontSize: '13px', color: '#6B7280' }}>1.2km · {h.specialities[0]}</span>
+                      <span style={{ fontSize: '13px', color: '#6B7280' }}>
+                        {h.distance.toFixed(1)}km · {h.specialities.slice(0, 2).join(', ')}
+                      </span>
                       <CheckCircle size={12} color="#10B981" />
                     </div>
                   </div>
@@ -208,87 +234,85 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Right Half: Map (Desktop only) */}
-        {isDesktop && (
-          <div style={{ flex: 1.2, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Map Search and Filters */}
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <div style={{ flex: 1, position: 'relative' }}>
-                <Search size={18} color="#9CA3AF" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-                <input 
-                  type="text" 
-                  placeholder="Search hospitals..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{ width: '100%', padding: '12px 12px 12px 40px', borderRadius: '12px', border: '1px solid #F0F0F0', outline: 'none', fontSize: '14px' }}
-                />
-              </div>
-              <div style={{ position: 'relative' }}>
-                <Filter size={18} color="#9CA3AF" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-                <select 
-                  value={selectedSpeciality}
-                  onChange={(e) => setSelectedSpeciality(e.target.value)}
-                  style={{ padding: '12px 12px 12px 40px', borderRadius: '12px', border: '1px solid #F0F0F0', outline: 'none', fontSize: '14px', appearance: 'none', background: 'white', cursor: 'pointer' }}
-                >
-                  {specialities.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
+        {/* Right Half: Map */}
+        <div style={{ flex: 1.2, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Map Search and Filters */}
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <Search size={18} color="#9CA3AF" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input 
+                type="text" 
+                placeholder="Search hospitals..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ width: '100%', padding: '12px 12px 12px 40px', borderRadius: '12px', border: '1px solid #F0F0F0', outline: 'none', fontSize: '14px' }}
+              />
             </div>
+            <div style={{ position: 'relative' }}>
+              <Filter size={18} color="#9CA3AF" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+              <select 
+                value={selectedSpeciality}
+                onChange={(e) => setSelectedSpeciality(e.target.value)}
+                style={{ padding: '12px 12px 12px 40px', borderRadius: '12px', border: '1px solid #F0F0F0', outline: 'none', fontSize: '14px', appearance: 'none', background: 'white', cursor: 'pointer' }}
+              >
+                {specialities.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
 
-            <div style={{ flex: 1, position: 'relative', height: '530px', borderRadius: '24px', overflow: 'hidden', border: '1px solid #F0F0F0', boxShadow: '0 4px 24px rgba(0,0,0,0.04)' }}>
-              <MapContainer center={mapCenter} zoom={13} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
-                <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
-                <MapUpdater center={mapCenter} />
-                <MapControls onLocateMe={handleLocateMe} />
-                
-                <Marker position={userLocation} icon={createUserIcon()}>
+          <div style={{ flex: 1, position: 'relative', height: isDesktop ? '530px' : '300px', borderRadius: '24px', overflow: 'hidden', border: '1px solid #F0F0F0', boxShadow: '0 4px 24px rgba(0,0,0,0.04)' }}>
+            <MapContainer center={mapCenter} zoom={13} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
+              <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
+              <MapUpdater center={mapCenter} />
+              <MapControls onLocateMe={handleLocateMe} />
+              
+              <Marker position={userLocation} icon={createUserIcon()}>
+                <Popup>
+                  <div style={{ padding: '4px' }}>
+                    <p style={{ fontWeight: 700, margin: 0 }}>Your Location</p>
+                    <p style={{ fontSize: '12px', color: '#6B7280', margin: '4px 0 0' }}>{userAddress}</p>
+                  </div>
+                </Popup>
+              </Marker>
+
+              {filteredHospitals.map(h => (
+                <Marker key={h.id} position={[h.lat, h.lng]} icon={createHospitalIcon()}>
                   <Popup>
-                    <div style={{ padding: '4px' }}>
-                      <p style={{ fontWeight: 700, margin: 0 }}>Your Location</p>
-                      <p style={{ fontSize: '12px', color: '#6B7280', margin: '4px 0 0' }}>{userAddress}</p>
+                    <div style={{ padding: '8px', minWidth: '180px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <div style={{ width: '32px', height: '32px', background: '#F9FAFB', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <HospitalIcon size={18} color="#E63946" />
+                        </div>
+                        <p style={{ fontWeight: 700, margin: 0, fontSize: '14px' }}>{h.name}</p>
+                      </div>
+                      <p style={{ fontSize: '12px', color: '#6B7280', margin: '0 0 12px' }}>
+                        {h.specialities.join(', ')}
+                      </p>
+                      <button 
+                        onClick={() => navigate('/book', { state: { hospitalId: h.id } })}
+                        style={{ width: '100%', padding: '8px', background: '#E63946', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        Book Ambulance Here
+                      </button>
                     </div>
                   </Popup>
                 </Marker>
+              ))}
+            </MapContainer>
 
-                {filteredHospitals.map(h => (
-                  <Marker key={h.id} position={[h.lat, h.lng]} icon={createHospitalIcon()}>
-                    <Popup>
-                      <div style={{ padding: '8px', minWidth: '180px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                          <div style={{ width: '32px', height: '32px', background: '#F9FAFB', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <HospitalIcon size={18} color="#E63946" />
-                          </div>
-                          <p style={{ fontWeight: 700, margin: 0, fontSize: '14px' }}>{h.name}</p>
-                        </div>
-                        <p style={{ fontSize: '12px', color: '#6B7280', margin: '0 0 12px' }}>
-                          {h.specialities.join(', ')}
-                        </p>
-                        <button 
-                          onClick={() => navigate('/book', { state: { hospitalId: h.id } })}
-                          style={{ width: '100%', padding: '8px', background: '#E63946', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
-                        >
-                          Book Ambulance Here
-                        </button>
-                      </div>
-                    </Popup>
-                  </Marker>
-                ))}
-              </MapContainer>
-
-              {/* Map Legend */}
-              <div style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 1000, background: 'white', padding: '8px 12px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', display: 'flex', gap: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#E63946' }} />
-                  <span style={{ fontSize: '11px', fontWeight: 600 }}>Hospital</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#1D3557' }} />
-                  <span style={{ fontSize: '11px', fontWeight: 600 }}>You</span>
-                </div>
+            {/* Map Legend */}
+            <div style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 1000, background: 'white', padding: '8px 12px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', display: 'flex', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#E63946' }} />
+                <span style={{ fontSize: '11px', fontWeight: 600 }}>Hospital</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#1D3557' }} />
+                <span style={{ fontSize: '11px', fontWeight: 600 }}>You</span>
               </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

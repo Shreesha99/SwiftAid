@@ -34,10 +34,53 @@ export default function MyBookings() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {bookings.length === 0 ? (
-          <div style={{ padding: '48px 20px', textAlign: 'center', background: '#F9FAFB', borderRadius: '16px', border: '1px dashed #D1D5DB' }}>
-            <Calendar size={48} color="#D1D5DB" style={{ marginBottom: '16px' }} />
-            <p style={{ fontWeight: 600, color: '#6B7280' }}>No bookings yet</p>
-            <p style={{ fontSize: '13px', color: '#9CA3AF', marginTop: '4px' }}>Your emergency requests will appear here</p>
+          <div style={{ 
+            padding: '64px 24px', 
+            textAlign: 'center', 
+            background: 'linear-gradient(180deg, #FFFFFF 0%, #F9FAFB 100%)', 
+            borderRadius: '24px', 
+            border: '1px solid #F0F0F0',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '16px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{ 
+              width: '80px', 
+              height: '80px', 
+              background: '#F3F4F6', 
+              borderRadius: '50%', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              marginBottom: '8px'
+            }}>
+              <Calendar size={32} color="#9CA3AF" />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <p style={{ fontSize: '18px', fontWeight: 700, color: '#1D3557' }}>No bookings yet</p>
+              <p style={{ fontSize: '14px', color: '#6B7280', maxWidth: '240px', margin: '0 auto', lineHeight: 1.5 }}>
+                Your emergency requests and history will appear here once you make a booking.
+              </p>
+            </div>
+            <button 
+              onClick={() => navigate('/')}
+              style={{ 
+                marginTop: '12px',
+                padding: '12px 24px', 
+                background: '#E63946', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '12px', 
+                fontSize: '14px', 
+                fontWeight: 600, 
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(230, 57, 70, 0.2)'
+              }}
+            >
+              Go to Home
+            </button>
           </div>
         ) : (
           bookings.map((booking) => (
