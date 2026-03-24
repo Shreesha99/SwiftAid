@@ -1,7 +1,6 @@
 import React from 'react';
 import { Phone, MessageCircle, Mail, HelpCircle, ShieldCheck, ChevronRight } from 'lucide-react';
-
-const ROTARY_LOGO = "https://upload.wikimedia.org/wikipedia/commons/3/35/Rotary_International_Logo.svg";
+import { ROTARY_LOGO_URL } from '../utils/mapHelpers';
 
 export default function Help() {
   const faqs = [
@@ -66,7 +65,13 @@ export default function Help() {
 
       {/* Partnership */}
       <div style={{ marginTop: 'auto', padding: '24px', background: '#FFF8E7', borderRadius: '16px', border: '1px solid #F7A600', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center', textAlign: 'center' }}>
-        <img src={ROTARY_LOGO} alt="Rotary" height="32" />
+        <img 
+          src={ROTARY_LOGO_URL} 
+          alt="Rotary International" 
+          height="32" 
+          style={{ objectFit: 'contain' }}
+          onError={(e: any) => { e.target.style.display = 'none' }}
+        />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <span style={{ fontWeight: 700, fontSize: '16px' }}>Rotary International Partnership</span>
           <p style={{ fontSize: '13px', color: '#6B7280', lineHeight: 1.5 }}>

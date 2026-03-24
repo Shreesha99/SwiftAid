@@ -4,9 +4,7 @@ import { MapPin, Phone, ChevronRight, User } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { hospitals } from '../data/hospitals';
 import { useAppStore } from '../store/useAppStore';
-import { createHospitalIcon, createUserIcon } from '../utils/mapHelpers';
-
-const ROTARY_LOGO = "https://upload.wikimedia.org/wikipedia/commons/3/35/Rotary_International_Logo.svg";
+import { createHospitalIcon, createUserIcon, ROTARY_LOGO_URL } from '../utils/mapHelpers';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -91,7 +89,13 @@ export default function Home() {
 
           {/* Trust Badge */}
           <div style={{ marginTop: 'auto', padding: '16px', background: '#F9FAFB', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <img src={ROTARY_LOGO} alt="Rotary" height="20" />
+            <img 
+              src={ROTARY_LOGO_URL} 
+              alt="Rotary International" 
+              height="20" 
+              style={{ objectFit: 'contain' }}
+              onError={(e: any) => { e.target.style.display = 'none' }}
+            />
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <span style={{ fontSize: '13px', fontWeight: 700 }}>Rotary International</span>
               <span style={{ fontSize: '11px', color: '#6B7280' }}>300+ verified hospitals across Bengaluru</span>

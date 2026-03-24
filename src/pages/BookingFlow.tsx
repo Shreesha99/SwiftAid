@@ -47,6 +47,8 @@ export default function BookingFlow() {
     address: 'Koramangala, Bengaluru'
   });
   const [note, setNote] = useState('');
+  const [isConfirmed, setIsConfirmed] = useState(false);
+  const [bookingId, setBookingId] = useState('');
 
   const handleNext = () => setStep(prev => prev + 1);
   const handleBack = () => step > 1 ? setStep(prev => prev - 1) : navigate('/');
@@ -58,9 +60,9 @@ export default function BookingFlow() {
       return d1 < d2 ? prev : curr;
     });
 
-    const bookingId = `SA-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    const id = `SA-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
     const newBooking = {
-      id: bookingId,
+      id,
       status: 'Active' as const,
       timestamp: new Date().toISOString(),
       emergencyType,
@@ -75,8 +77,56 @@ export default function BookingFlow() {
     };
 
     addBooking(newBooking);
-    navigate(`/track/${bookingId}`);
+    setBookingId(id);
+    setIsConfirmed(true);
   };
+
+  if (isConfirmed) {
+    return (
+      <div style={{ padding: '24px 20px', textAlign: 'center', minHeight: '100vh', background: 'white', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        {/* Big success state */}
+        <div style={{
+          width: 80, height: 80, borderRadius: '50%',
+          background: '#ECFDF5', margin: '0 auto 20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 40,
+        }}>🚑</div>
+        
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: '#1D3557' }}>
+          Ambulance Dispatched
+        </h2>
+        <p style={{ color: '#6B7280', marginTop: 8, fontSize: 15 }}>
+          Booking SWF-{bookingId}
+        </p>
+
+        {/* Primary action */}
+        <button
+          onClick={() => navigate(`/track/${bookingId}`)}
+          style={{
+            width: '100%', marginTop: 32, padding: '16px',
+            background: '#E63946', color: 'white',
+            border: 'none', borderRadius: 12,
+            fontSize: 16, fontWeight: 600, cursor: 'pointer',
+          }}
+        >
+          Track Ambulance →
+        </button>
+
+        {/* Secondary — go home */}
+        <button
+          onClick={() => navigate('/')}
+          style={{
+            width: '100%', marginTop: 12, padding: '14px',
+            background: 'white', color: '#6B7280',
+            border: '1px solid #E5E7EB', borderRadius: 12,
+            fontSize: 15, cursor: 'pointer',
+          }}
+        >
+          Back to Home
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', background: 'white' }}>

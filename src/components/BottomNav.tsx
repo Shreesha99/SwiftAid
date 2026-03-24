@@ -6,8 +6,11 @@ export default function BottomNav() {
   const location = useLocation();
   
   // Hide on booking and tracking routes
-  const hideRoutes = ['/book', '/track'];
-  if (hideRoutes.some(route => location.pathname.startsWith(route))) return null;
+  const hideNav = ['/book', '/track'].some(route => 
+    location.pathname === route || 
+    location.pathname.startsWith(route + '/')
+  );
+  if (hideNav) return null;
 
   const navItems = [
     { path: '/', icon: Home, label: 'Home' },

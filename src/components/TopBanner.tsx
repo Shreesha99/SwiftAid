@@ -1,6 +1,5 @@
 import React from 'react';
-
-const ROTARY_LOGO = "https://upload.wikimedia.org/wikipedia/commons/3/35/Rotary_International_Logo.svg";
+import { ROTARY_LOGO_URL } from '../utils/mapHelpers';
 
 export default function TopBanner() {
   return (
@@ -23,7 +22,13 @@ export default function TopBanner() {
       color: '#1D3557',
     }}>
       <span>In partnership with Rotary International</span>
-      <img src={ROTARY_LOGO} alt="Rotary International" height="24" />
+      <img 
+        src={ROTARY_LOGO_URL} 
+        alt="Rotary International" 
+        height="24" 
+        style={{ objectFit: 'contain' }}
+        onError={(e: any) => { e.target.style.display = 'none' }}
+      />
       <span style={{ color: '#F7A600', margin: '0 8px' }}>·</span>
       <span>300+ verified hospitals across Bengaluru</span>
     </div>
