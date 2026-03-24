@@ -1,225 +1,186 @@
-/* src/pages/Profile.tsx */
 import React, { useState } from 'react';
-import { User, Phone, Droplet, AlertCircle, Save, Plus, Trash2, ShieldCheck, Heart } from 'lucide-react';
+import { User, Phone, Mail, ShieldCheck, LogOut, ChevronRight, Edit2, Plus, Trash2 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-const Profile: React.FC = () => {
+export default function Profile() {
   const { userProfile, updateProfile } = useAppStore();
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState(userProfile);
-  const [newContact, setNewContact] = useState({ name: '', phone: '' });
-  const [showAddContact, setShowAddContact] = useState(false);
+  const [editedProfile, setEditedProfile] = useState(userProfile);
 
   const handleSave = () => {
-    updateProfile(formData);
+    updateProfile(editedProfile);
     setIsEditing(false);
-    // Using a custom toast-like alert would be better, but keeping it simple for now
   };
 
   const handleAddContact = () => {
-    if (newContact.name && newContact.phone) {
-      const updatedContacts = [...formData.emergencyContacts, newContact];
-      setFormData({ ...formData, emergencyContacts: updatedContacts });
-      setNewContact({ name: '', phone: '' });
-      setShowAddContact(false);
-    }
+    setEditedProfile(prev => ({
+      ...prev,
+      emergencyContacts: [...prev.emergencyContacts, { name: '', phone: '' }]
+    }));
   };
 
-  const removeContact = (index: number) => {
-    const updatedContacts = formData.emergencyContacts.filter((_, i) => i !== index);
-    setFormData({ ...formData, emergencyContacts: updatedContacts });
+  const handleRemoveContact = (idx: number) => {
+    setEditedProfile(prev => ({
+      ...prev,
+      emergencyContacts: prev.emergencyContacts.filter((_, i) => i !== idx)
+    }));
+  };
+
+  const handleUpdateContact = (idx: number, field: 'name' | 'phone', value: string) => {
+    setEditedProfile(prev => {
+      const updated = [...prev.emergencyContacts];
+      updated[idx] = { ...updated[idx], [field]: value };
+      return { ...prev, emergencyContacts: updated };
+    });
   };
 
   return (
-    <div className="flex flex-col p-6 gap-8 min-h-full bg-white overflow-y-auto pb-24">
-      <div className="flex items-center justify-between mt-8">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-black text-[#1D3557] tracking-tight">Profile</h1>
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Medical ID & Settings</p>
+    <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <h1 style={{ fontSize: '22px', fontWeight: 700 }}>Profile</h1>
+          <p style={{ fontSize: '14px', color: '#6B7280' }}>Manage your account and emergency info</p>
         </div>
-        <button
+        <button 
           onClick={() => isEditing ? handleSave() : setIsEditing(true)}
-          className={cn(
-            "px-6 py-2.5 rounded-2xl font-black text-xs transition-all active:scale-95",
-            isEditing 
-              ? "bg-green-500 text-white shadow-lg shadow-green-100" 
-              : "bg-gray-100 text-[#1D3557]"
-          )}
+          style={{ padding: '8px 16px', background: isEditing ? '#10B981' : '#F9FAFB', border: '1px solid #F0F0F0', borderRadius: '8px', color: isEditing ? 'white' : '#1D3557', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
         >
-          {isEditing ? 'SAVE CHANGES' : 'EDIT PROFILE'}
+          {isEditing ? <CheckCircle size={16} /> : <Edit2 size={16} />}
+          {isEditing ? 'Save' : 'Edit'}
         </button>
-      </div>
+      </header>
 
-      {/* Personal Info */}
-      <div className="flex flex-col gap-4">
-        <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Personal Information</h2>
-        <div className="flex flex-col gap-6 bg-white border border-gray-100 p-6 rounded-[32px] shadow-sm">
-          <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-              <User size={12} /> Full Name
-            </label>
+      {/* User Info */}
+      <div style={{ padding: '24px', background: 'white', border: '1px solid #F0F0F0', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#F9FAFB', border: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>👤</div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             {isEditing ? (
-              <input
-                type="text"
-                className="w-full p-4 bg-gray-50 rounded-2xl text-sm font-bold border border-gray-100 focus:outline-none focus:border-[#E63946] transition-colors"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              <input 
+                value={editedProfile.name}
+                onChange={(e) => setEditedProfile(prev => ({ ...prev, name: e.target.value }))}
+                style={{ padding: '8px', borderRadius: '8px', border: '1px solid #F0F0F0', fontSize: '18px', fontWeight: 700, outline: 'none' }}
               />
             ) : (
-              <span className="text-lg font-black text-[#1D3557] px-1">{userProfile.name || 'Not set'}</span>
+              <span style={{ fontWeight: 700, fontSize: '18px' }}>{userProfile.name}</span>
             )}
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-              <Phone size={12} /> Phone Number
-            </label>
-            {isEditing ? (
-              <input
-                type="tel"
-                className="w-full p-4 bg-gray-50 rounded-2xl text-sm font-bold border border-gray-100 focus:outline-none focus:border-[#E63946] transition-colors"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              />
-            ) : (
-              <span className="text-lg font-black text-[#1D3557] px-1">{userProfile.phone || 'Not set'}</span>
-            )}
+            <span style={{ fontSize: '13px', color: '#6B7280', fontWeight: 600 }}>Verified User</span>
           </div>
         </div>
-      </div>
 
-      {/* Medical Info */}
-      <div className="flex flex-col gap-4">
-        <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Medical Information</h2>
-        <div className="flex flex-col gap-6 bg-white border border-gray-100 p-6 rounded-[32px] shadow-sm">
-          <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-              <Droplet size={12} className="text-red-500" /> Blood Group
-            </label>
-            {isEditing ? (
-              <select
-                className="w-full p-4 bg-gray-50 rounded-2xl text-sm font-bold border border-gray-100 focus:outline-none focus:border-[#E63946] transition-colors appearance-none"
-                value={formData.bloodGroup}
-                onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
-              >
-                <option value="">Select</option>
-                {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(bg => (
-                  <option key={bg} value={bg}>{bg}</option>
-                ))}
-              </select>
-            ) : (
-              <div className="flex items-center gap-2 px-1">
-                <span className="text-lg font-black text-[#1D3557]">{userProfile.bloodGroup || 'Not set'}</span>
-                {userProfile.bloodGroup && <ShieldCheck size={16} className="text-green-500" />}
-              </div>
-            )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderTop: '1px solid #F9FAFB', paddingTop: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Phone size={18} color="#6B7280" />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>Phone</span>
+              {isEditing ? (
+                <input 
+                  value={editedProfile.phone}
+                  onChange={(e) => setEditedProfile(prev => ({ ...prev, phone: e.target.value }))}
+                  style={{ padding: '4px', borderRadius: '4px', border: '1px solid #F0F0F0', fontSize: '14px', fontWeight: 600, outline: 'none' }}
+                />
+              ) : (
+                <span style={{ fontSize: '14px', fontWeight: 600 }}>{userProfile.phone}</span>
+              )}
+            </div>
           </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-              <AlertCircle size={12} className="text-orange-500" /> Allergies & Conditions
-            </label>
-            {isEditing ? (
-              <textarea
-                className="w-full p-4 bg-gray-50 rounded-2xl text-sm font-bold border border-gray-100 focus:outline-none focus:border-[#E63946] transition-colors min-h-[100px]"
-                value={formData.allergies}
-                onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
-                placeholder="e.g. Penicillin, Peanuts, Heart Condition"
-              />
-            ) : (
-              <span className="text-sm font-bold text-[#1D3557] leading-relaxed px-1">{userProfile.allergies || 'No allergies reported'}</span>
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Mail size={18} color="#6B7280" />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>Email</span>
+              {isEditing ? (
+                <input 
+                  value={editedProfile.email}
+                  onChange={(e) => setEditedProfile(prev => ({ ...prev, email: e.target.value }))}
+                  style={{ padding: '4px', borderRadius: '4px', border: '1px solid #F0F0F0', fontSize: '14px', fontWeight: 600, outline: 'none' }}
+                />
+              ) : (
+                <span style={{ fontSize: '14px', fontWeight: 600 }}>{userProfile.email}</span>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Emergency Contacts */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Emergency Contacts</h2>
-          {isEditing && formData.emergencyContacts.length < 2 && (
-            <button
-              onClick={() => setShowAddContact(true)}
-              className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-black text-[10px] flex items-center gap-1 uppercase tracking-widest"
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h2 style={{ fontSize: '13px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Emergency Contacts</h2>
+          {isEditing && (
+            <button 
+              onClick={handleAddContact}
+              style={{ background: 'none', border: 'none', color: '#E63946', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
             >
-              <Plus size={12} /> ADD NEW
+              <Plus size={16} /> Add
             </button>
           )}
         </div>
-        <div className="flex flex-col gap-3">
-          {formData.emergencyContacts.map((contact, i) => (
-            <div key={i} className="p-5 bg-white border border-gray-100 rounded-[24px] flex justify-between items-center shadow-sm">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500">
-                  <Heart size={18} />
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {(isEditing ? editedProfile.emergencyContacts : userProfile.emergencyContacts).length === 0 ? (
+            <div style={{ padding: '24px', background: '#F9FAFB', borderRadius: '12px', border: '1px dashed #D1D5DB', textAlign: 'center' }}>
+              <p style={{ fontSize: '13px', color: '#6B7280', fontWeight: 600 }}>No emergency contacts added</p>
+            </div>
+          ) : (
+            (isEditing ? editedProfile.emergencyContacts : userProfile.emergencyContacts).map((contact, idx) => (
+              <div key={idx} style={{ padding: '16px', background: 'white', border: '1px solid #F0F0F0', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E63946' }}>
+                    <Phone size={18} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {isEditing ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <input 
+                          placeholder="Name"
+                          value={contact.name}
+                          onChange={(e) => handleUpdateContact(idx, 'name', e.target.value)}
+                          style={{ padding: '4px', borderRadius: '4px', border: '1px solid #F0F0F0', fontSize: '14px', fontWeight: 700, outline: 'none' }}
+                        />
+                        <input 
+                          placeholder="Phone"
+                          value={contact.phone}
+                          onChange={(e) => handleUpdateContact(idx, 'phone', e.target.value)}
+                          style={{ padding: '4px', borderRadius: '4px', border: '1px solid #F0F0F0', fontSize: '12px', fontWeight: 600, outline: 'none' }}
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <span style={{ fontWeight: 700, fontSize: '15px' }}>{contact.name}</span>
+                        <span style={{ fontSize: '13px', color: '#6B7280', fontWeight: 600 }}>{contact.phone}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <div className="flex flex-col">
-                  <span className="font-black text-[#1D3557] text-sm">{contact.name}</span>
-                  <span className="text-xs text-gray-400 font-bold tracking-tight">{contact.phone}</span>
-                </div>
+                {isEditing && (
+                  <button onClick={() => handleRemoveContact(idx)} style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer' }}>
+                    <Trash2 size={18} />
+                  </button>
+                )}
               </div>
-              {isEditing && (
-                <button 
-                  onClick={() => removeContact(i)} 
-                  className="w-10 h-10 bg-gray-50 text-gray-400 rounded-xl flex items-center justify-center active:bg-red-50 active:text-red-500 transition-colors"
-                >
-                  <Trash2 size={18} />
-                </button>
-              )}
-            </div>
-          ))}
-
-          {showAddContact && (
-            <div className="p-6 bg-gray-50 rounded-[32px] flex flex-col gap-4 border-2 border-dashed border-gray-200">
-              <div className="flex flex-col gap-3">
-                <input
-                  type="text"
-                  placeholder="Contact Name"
-                  className="w-full p-4 bg-white rounded-2xl text-sm font-bold border border-gray-100"
-                  value={newContact.name}
-                  onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
-                />
-                <input
-                  type="tel"
-                  placeholder="Phone Number"
-                  className="w-full p-4 bg-white rounded-2xl text-sm font-bold border border-gray-100"
-                  value={newContact.phone}
-                  onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
-                />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleAddContact}
-                  className="flex-1 bg-[#457B9D] text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-100"
-                >
-                  ADD CONTACT
-                </button>
-                <button
-                  onClick={() => setShowAddContact(false)}
-                  className="px-6 py-4 text-gray-500 text-xs font-black uppercase tracking-widest"
-                >
-                  CANCEL
-                </button>
-              </div>
-            </div>
-          )}
-
-          {formData.emergencyContacts.length === 0 && !showAddContact && (
-            <div className="p-12 border-2 border-dashed border-gray-100 rounded-[32px] text-center flex flex-col items-center gap-3">
-              <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center text-gray-300">
-                <Heart size={24} />
-              </div>
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">No emergency contacts added</p>
-            </div>
+            ))
           )}
         </div>
       </div>
+
+      {/* Account Actions */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'auto' }}>
+        <button style={{ padding: '16px', borderRadius: '12px', border: '1px solid #F0F0F0', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <ShieldCheck size={20} color="#10B981" />
+            <span style={{ fontWeight: 600 }}>Privacy & Data</span>
+          </div>
+          <ChevronRight size={18} color="#D1D5DB" />
+        </button>
+        <button style={{ padding: '16px', borderRadius: '12px', border: '1px solid #fee2e2', background: '#fef2f2', display: 'flex', alignItems: 'center', gap: '12px', color: '#E63946', fontWeight: 700, cursor: 'pointer' }}>
+          <LogOut size={20} />
+          <span>Log Out</span>
+        </button>
+      </div>
     </div>
   );
-};
+}
 
-export default Profile;
+function CheckCircle({ size }: { size: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
+}

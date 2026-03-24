@@ -1,148 +1,159 @@
-/* src/pages/RatingScreen.tsx */
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Star, CheckCircle, MessageSquare, Heart } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Star, CheckCircle, ArrowLeft, MessageSquare, ShieldCheck } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
-import { motion } from 'motion/react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-const FEEDBACK_TAGS = [
-  'Driver was helpful',
-  'Arrived on time',
-  'Vehicle was clean',
-  'Needed more equipment',
-  'Driver was rude',
-  'Arrived late'
+const RATING_TAGS = [
+  'Fast Arrival', 'Professional Crew', 'Clean Vehicle', 'Good Communication', 'Safe Driving'
 ];
 
-const RatingScreen: React.FC = () => {
+export default function RatingScreen() {
+  const { bookingId } = useParams();
   const navigate = useNavigate();
-  const { currentBooking, completeBooking } = useAppStore();
+  const { bookings, addRating } = useAppStore();
+  const booking = bookings.find(b => b.id === bookingId);
+
   const [rating, setRating] = useState(0);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [feedback, setFeedback] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const toggleTag = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
-  };
+  if (!booking) return <div>Booking not found</div>;
 
   const handleSubmit = () => {
-    if (currentBooking) {
-      completeBooking(currentBooking.id, rating, feedback, selectedTags);
-      setIsSubmitted(true);
-      setTimeout(() => navigate('/'), 2000);
-    }
+    if (rating === 0) return;
+    addRating(booking.id, rating, feedback);
+    setIsSubmitted(true);
+    setTimeout(() => navigate('/bookings'), 2000);
+  };
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
   };
 
   if (isSubmitted) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6 h-full bg-white">
-        <motion.div
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="w-32 h-32 bg-green-50 rounded-full flex items-center justify-center text-green-500 shadow-xl shadow-green-100"
-        >
-          <CheckCircle size={64} />
-        </motion.div>
-        <div className="text-center flex flex-col gap-3">
-          <h2 className="text-3xl font-black text-[#1D3557] tracking-tight">Thank You!</h2>
-          <p className="text-gray-500 font-medium leading-relaxed max-w-[240px] mx-auto">
-            Your feedback helps us improve emergency response times in Bengaluru.
-          </p>
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px', textAlign: 'center', gap: '24px' }}>
+        <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10B981', animation: 'scale-in 0.5s ease' }}>
+          <CheckCircle size={48} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 700 }}>Thank you!</h1>
+          <p style={{ fontSize: '15px', color: '#6B7280', lineHeight: 1.5 }}>Your feedback helps us improve our emergency services.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col p-6 gap-8 bg-white min-h-full overflow-y-auto pb-24">
-      <div className="mt-8 flex flex-col gap-2">
-        <div className="w-12 h-12 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center shadow-sm">
-          <Heart size={24} />
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'white' }}>
+      <header style={{ padding: '24px 20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <button onClick={() => navigate('/bookings')} style={{ background: 'none', border: 'none', color: '#1D3557', cursor: 'pointer' }}>
+          <ArrowLeft size={24} />
+        </button>
+        <h1 style={{ fontSize: '20px', fontWeight: 700 }}>Rate your experience</h1>
+      </header>
+
+      <main style={{ flex: 1, padding: '0 20px 40px', display: 'flex', flexDirection: 'column', gap: '40px' }}>
+        {/* Driver Info Summary */}
+        <div style={{ padding: '20px', background: '#F9FAFB', borderRadius: '16px', border: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'white', border: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>👨‍✈️</div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontWeight: 700, fontSize: '16px' }}>{booking.driver?.name}</span>
+            <span style={{ fontSize: '13px', color: '#6B7280', fontWeight: 600 }}>{booking.driver?.vehicleNumber}</span>
+          </div>
         </div>
-        <h1 className="text-3xl font-black text-[#1D3557] tracking-tight">How was your experience?</h1>
-        <p className="text-gray-500 font-medium">Rate your recent ambulance service</p>
-      </div>
 
-      {/* Star Rating */}
-      <div className="flex justify-center gap-3 py-4">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <button
-            key={star}
-            onClick={() => setRating(star)}
-            className="p-1 transition-all active:scale-75"
-          >
-            <Star
-              size={44}
-              fill={star <= rating ? '#FFC107' : 'none'}
-              stroke={star <= rating ? '#FFC107' : '#E2E8F0'}
-              strokeWidth={1.5}
-              className={cn(
-                "transition-all",
-                star <= rating && "scale-110 drop-shadow-lg"
-              )}
-            />
-          </button>
-        ))}
-      </div>
-
-      {/* Tags */}
-      <div className="flex flex-col gap-4">
-        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">What went well (or didn't)?</h3>
-        <div className="flex flex-wrap gap-2">
-          {FEEDBACK_TAGS.map((tag) => (
-            <button
-              key={tag}
-              onClick={() => toggleTag(tag)}
-              className={cn(
-                "px-5 py-3 rounded-2xl text-xs font-black border transition-all active:scale-95",
-                selectedTags.includes(tag)
-                  ? 'bg-[#1D3557] border-[#1D3557] text-white shadow-lg shadow-blue-100'
-                  : 'bg-white border-gray-100 text-gray-400'
-              )}
-            >
-              {tag}
-            </button>
-          ))}
+        {/* Star Rating */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+          <span style={{ fontSize: '15px', fontWeight: 600, color: '#1D3557' }}>How was the service?</span>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            {[1, 2, 3, 4, 5].map(star => (
+              <button
+                key={star}
+                onClick={() => setRating(star)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', transition: 'transform 0.1s ease' }}
+                onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.9)'}
+                onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                <Star 
+                  size={40} 
+                  fill={star <= rating ? '#F7A600' : 'none'} 
+                  color={star <= rating ? '#F7A600' : '#D1D5DB'} 
+                  strokeWidth={1.5}
+                />
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Feedback Text */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
-          <MessageSquare size={14} />
-          <span>Any other feedback?</span>
+        {/* Tags */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <span style={{ fontSize: '13px', color: '#9CA3AF', textTransform: 'uppercase', fontWeight: 700 }}>What went well?</span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+            {RATING_TAGS.map(tag => (
+              <button
+                key={tag}
+                onClick={() => toggleTag(tag)}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: '100px',
+                  border: `1.5px solid ${selectedTags.includes(tag) ? '#E63946' : '#F0F0F0'}`,
+                  background: selectedTags.includes(tag) ? '#fef2f2' : 'white',
+                  color: selectedTags.includes(tag) ? '#E63946' : '#6B7280',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
         </div>
-        <textarea
-          className="w-full p-5 bg-gray-50 rounded-[32px] text-sm font-bold border border-gray-100 focus:outline-none focus:border-[#E63946] min-h-[140px] transition-colors"
-          placeholder="Tell us more about your experience..."
-          value={feedback}
-          onChange={(e) => setFeedback(e.target.value)}
-        />
-      </div>
 
-      <button
-        onClick={handleSubmit}
-        disabled={rating === 0}
-        className={cn(
-          "w-full py-5 rounded-[24px] font-black text-lg shadow-2xl transition-all active:scale-95",
-          rating === 0
-            ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-            : 'bg-[#E63946] text-white shadow-red-100'
-        )}
-      >
-        SUBMIT FEEDBACK
-      </button>
+        {/* Feedback Text */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <MessageSquare size={16} color="#9CA3AF" />
+            <span style={{ fontSize: '13px', color: '#9CA3AF', textTransform: 'uppercase', fontWeight: 700 }}>Additional comments</span>
+          </div>
+          <textarea
+            placeholder="Tell us more about your experience..."
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            style={{
+              width: '100%',
+              height: '100px',
+              padding: '16px',
+              borderRadius: '16px',
+              border: '1px solid #F0F0F0',
+              background: '#F9FAFB',
+              fontSize: '15px',
+              outline: 'none',
+              resize: 'none',
+            }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10B981', background: '#ecfdf5', padding: '12px', borderRadius: '12px', fontSize: '13px', fontWeight: 600 }}>
+          <ShieldCheck size={16} />
+          <span>Your feedback is shared with Rotary Quality Control</span>
+        </div>
+      </main>
+
+      <footer style={{ padding: '20px', borderTop: '1px solid #F0F0F0' }}>
+        <button 
+          className="primary-button"
+          disabled={rating === 0}
+          onClick={handleSubmit}
+        >
+          Submit Feedback
+        </button>
+      </footer>
     </div>
   );
-};
-
-export default RatingScreen;
+}

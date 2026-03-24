@@ -1,226 +1,168 @@
-/* src/pages/TrackingScreen.tsx */
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer, Polyline, useMap } from 'react-leaflet';
+import { MapPin, Phone, X, ChevronUp, ChevronDown, ShieldCheck, Clock, Map as MapIcon } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { useAppStore } from '../store/useAppStore';
-import { FloatingTrackingUI } from '../components/FloatingTrackingUI';
-import { ArrivalModal } from '../components/ArrivalModal';
-import { createUserIcon, createAmbulanceIcon, createHospitalIcon, fetchOSRMRoute } from '../utils/mapHelpers';
-import '../components/MapStyles.css';
+import { createAmbulanceIcon, createUserIcon, fetchRoute, interpolate } from '../utils/mapHelpers';
 
-const TrackingScreen: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+function MapController({ center }: { center: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, 15);
+  }, [center, map]);
+  return null;
+}
+
+export default function TrackingScreen() {
+  const { bookingId } = useParams();
   const navigate = useNavigate();
-  const { bookings, cancelBooking, completeBooking } = useAppStore();
-  const booking = bookings.find((b) => b.id === id);
+  const { bookings, cancelBooking } = useAppStore();
+  const booking = bookings.find(b => b.id === bookingId);
+  
+  const [ambulancePos, setAmbulancePos] = useState<[number, number]>([12.9592, 77.6444]); // Manipal Hospital
+  const [route, setRoute] = useState<[number, number][]>([]);
+  const [eta, setEta] = useState(8);
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  const animationRef = useRef<number | undefined>(undefined);
+  const stepRef = useRef(0);
 
-  const [eta, setEta] = useState(10);
-  const [status, setStatus] = useState<'En Route' | 'Arriving' | 'Arrived'>('En Route');
-  const [isArrivalModalOpen, setIsArrivalModalOpen] = useState(false);
-  const [routeCoords, setRouteCoords] = useState<[number, number][]>([]);
-  const [traveledCoords, setTraveledCoords] = useState<[number, number][]>([]);
-
-  // Refs for animation to prevent React re-renders
-  const mapRef = useRef<L.Map | null>(null);
-  const ambulanceMarkerRef = useRef<L.Marker | null>(null);
-  const stepIndexRef = useRef(0);
-  const intervalRef = useRef<any>(null);
-
-  const userIcon = useMemo(() => createUserIcon(), []);
-  const ambulanceIcon = useMemo(() => createAmbulanceIcon(), []);
-  const hospitalIcon = useMemo(() => createHospitalIcon(booking?.hospital?.name), [booking?.hospital?.name]);
-
-  // Initial setup: Fetch route and start animation
   useEffect(() => {
     if (!booking) return;
 
-    const setupTracking = async () => {
-      // Start ambulance ~3km away in a random direction
-      const angle = Math.random() * Math.PI * 2;
-      const distance = 0.025; // ~2.5-3km in lat/lng approx
-      const startLat = booking.userLocation.lat + Math.sin(angle) * distance;
-      const startLng = booking.userLocation.lng + Math.cos(angle) * distance;
+    const start: [number, number] = [12.9592, 77.6444];
+    const end: [number, number] = [booking.userLocation?.lat || 12.9344, booking.userLocation?.lng || 77.6192];
 
-      const coords = await fetchOSRMRoute(
-        startLat, startLng,
-        booking.userLocation.lat, booking.userLocation.lng
-      );
-
-      setRouteCoords(coords);
+    fetchRoute(start, end).then(coords => {
+      setRoute(coords);
       
-      // Fit bounds once on load
-      if (mapRef.current) {
-        mapRef.current.fitBounds([
-          [startLat, startLng],
-          [booking.userLocation.lat, booking.userLocation.lng]
-        ], { padding: [80, 80] });
-      }
-
-      // Create marker once
-      if (mapRef.current && !ambulanceMarkerRef.current) {
-        ambulanceMarkerRef.current = L.marker([startLat, startLng], { icon: ambulanceIcon })
-          .addTo(mapRef.current);
-        
-        startAnimation(coords);
-      }
-    };
-
-    setupTracking();
+      const animate = () => {
+        if (stepRef.current < coords.length) {
+          setAmbulancePos(coords[stepRef.current]);
+          setEta(Math.max(1, Math.ceil(8 * (1 - stepRef.current / coords.length))));
+          stepRef.current += 1;
+          animationRef.current = window.setTimeout(animate, 1000);
+        }
+      };
+      animate();
+    });
 
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      ambulanceMarkerRef.current?.remove();
-      ambulanceMarkerRef.current = null;
+      if (animationRef.current) clearTimeout(animationRef.current);
     };
   }, [booking]);
 
-  const startAnimation = (coords: [number, number][]) => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    
-    stepIndexRef.current = 0;
-    intervalRef.current = setInterval(() => {
-      const i = stepIndexRef.current;
-      
-      if (i >= coords.length) {
-        clearInterval(intervalRef.current);
-        handleArrival();
-        return;
-      }
-
-      const [lat, lng] = coords[i];
-      ambulanceMarkerRef.current?.setLatLng([lat, lng]);
-
-      // Rotate marker toward next point
-      if (i < coords.length - 1) {
-        const [nextLat, nextLng] = coords[i + 1];
-        const angle = Math.atan2(nextLng - lng, nextLat - lat) * 180 / Math.PI;
-        const el = ambulanceMarkerRef.current?.getElement();
-        if (el) {
-          // Leaflet handles rotation via CSS transform
-          el.style.transform = `${el.style.transform} rotate(${angle}deg)`;
-        }
-      }
-
-      // Update traveled path for visual effect
-      setTraveledCoords(coords.slice(0, i + 1));
-      
-      // Update ETA and Status based on progress
-      const remaining = Math.ceil(((coords.length - i) / coords.length) * 10);
-      setEta(remaining);
-      if (remaining <= 2 && remaining > 0) setStatus('Arriving');
-      
-      stepIndexRef.current += 1;
-    }, 600);
-  };
-
-  const handleArrival = () => {
-    setStatus('Arrived');
-    setEta(0);
-    setIsArrivalModalOpen(true);
-    if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
-  };
+  if (!booking) return <div>Booking not found</div>;
 
   const handleCancel = () => {
-    if (id) {
-      cancelBooking(id);
+    if (window.confirm('Are you sure you want to cancel?')) {
+      cancelBooking(booking.id);
       navigate('/');
     }
   };
 
-  const handleComplete = () => {
-    if (id) {
-      completeBooking(id);
-      navigate('/rating');
-    }
-  };
-
-  if (!booking) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full p-8 gap-4 text-center">
-        <div className="w-16 h-16 bg-red-50 text-[#E63946] rounded-full flex items-center justify-center">
-          <span className="text-3xl">🚑</span>
-        </div>
-        <h2 className="text-xl font-black text-[#1D3557]">Booking Not Found</h2>
-        <p className="text-gray-500 text-sm">This booking may have been cancelled or expired.</p>
-        <button onClick={() => navigate('/')} className="px-8 py-3 bg-[#E63946] text-white rounded-2xl font-black">GO HOME</button>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col h-full relative overflow-hidden">
-      {/* Full Screen Map */}
-      <div className="absolute inset-0 z-0">
-        <MapContainer 
-          center={[booking.userLocation.lat, booking.userLocation.lng]} 
-          zoom={15} 
-          className="w-full h-full"
-          zoomControl={false}
-          ref={(map) => { mapRef.current = map; }}
-        >
-          <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          />
-          
-          {/* User Location */}
-          <LMarker position={[booking.userLocation.lat, booking.userLocation.lng]} icon={userIcon} />
-          
-          {/* Hospital Location (Mocked slightly offset from user for visual) */}
-          <LMarker 
-            position={[booking.hospital.lat, booking.hospital.lng]} 
-            icon={hospitalIcon} 
-          />
-
-          {/* Route Polyline - Background Outline */}
-          <Polyline 
-            positions={routeCoords} 
-            pathOptions={{ color: '#ffffff', weight: 8, opacity: 0.6, lineCap: 'round' }} 
-          />
-          
-          {/* Route Polyline - Primary Route */}
-          <Polyline 
-            positions={routeCoords} 
-            pathOptions={{ color: '#E63946', weight: 4, opacity: 0.8, lineCap: 'round' }} 
-          />
-
-          {/* Traveled Path */}
-          <Polyline 
-            positions={traveledCoords} 
-            pathOptions={{ color: '#9CA3AF', weight: 3, opacity: 0.5, lineCap: 'round' }} 
-          />
+    <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'white' }}>
+      {/* Map Background */}
+      <div style={{ position: 'absolute', inset: 0 }}>
+        <MapContainer center={ambulancePos} zoom={15} zoomControl={false}>
+          <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
+          <Marker position={ambulancePos} icon={createAmbulanceIcon()} />
+          <Marker position={[booking.userLocation?.lat || 12.9344, booking.userLocation?.lng || 77.6192]} icon={createUserIcon()} />
+          {route.length > 0 && <Polyline positions={route} color="#E63946" weight={4} opacity={0.6} dashArray="8, 12" />}
+          <MapController center={ambulancePos} />
         </MapContainer>
       </div>
 
-      {/* Floating UI Layers */}
-      <FloatingTrackingUI 
-        bookingId={booking.id}
-        status={status}
-        eta={eta}
-        driver={booking.driver}
-        ambulanceType={booking.ambulanceType}
-        onCancel={handleCancel}
-      />
+      {/* Top Floating Pill */}
+      <div style={{ position: 'absolute', top: '20px', left: '20px', right: '20px', zIndex: 300, display: 'flex', justifyContent: 'center' }}>
+        <div style={{ 
+          background: 'white', 
+          padding: '12px 20px', 
+          borderRadius: '100px', 
+          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          border: '1px solid #F0F0F0'
+        }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#E63946', animation: 'pulse-ring 1.5s infinite' }} />
+          <span style={{ fontWeight: 700, fontSize: '15px' }}>🚑 En route · ETA {eta} min</span>
+          <div style={{ width: '1px', height: '16px', background: '#F0F0F0' }} />
+          <button onClick={handleCancel} style={{ background: 'none', border: 'none', color: '#6B7280', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>Cancel</button>
+        </div>
+      </div>
 
-      <ArrivalModal 
-        isOpen={isArrivalModalOpen}
-        onClose={() => setIsArrivalModalOpen(false)}
-        hospital={booking.hospital}
-        onComplete={handleComplete}
-      />
+      {/* Bottom Sheet */}
+      <div style={{ 
+        position: 'absolute', 
+        bottom: 0, 
+        left: 0, 
+        right: 0, 
+        zIndex: 300,
+        background: 'white',
+        borderTopLeftRadius: '24px',
+        borderTopRightRadius: '24px',
+        boxShadow: '0 -8px 32px rgba(0,0,0,0.1)',
+        padding: '20px',
+        transition: 'transform 0.3s ease',
+        transform: isExpanded ? 'translateY(0)' : 'translateY(calc(100% - 140px))'
+      }}>
+        {/* Handle */}
+        <button 
+          onClick={() => setIsExpanded(!isExpanded)}
+          style={{ width: '100%', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer' }}
+        >
+          <div style={{ width: '40px', height: '4px', background: '#F0F0F0', borderRadius: '2px' }} />
+        </button>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '8px' }}>
+          {/* Driver Info */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#F9FAFB', border: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>👨‍✈️</div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontWeight: 700, fontSize: '18px' }}>{booking.driver?.name}</span>
+                <span style={{ fontSize: '13px', color: '#6B7280', fontWeight: 600 }}>{booking.driver?.vehicleNumber}</span>
+              </div>
+            </div>
+            <a href={`tel:${booking.driver?.phone}`} style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', textDecoration: 'none' }}>
+              <Phone size={20} />
+            </a>
+          </div>
+
+          {/* Progress Bar */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>
+              <span>Dispatch</span>
+              <span>Hospital</span>
+            </div>
+            <div style={{ height: '6px', background: '#F3F4F6', borderRadius: '3px', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(stepRef.current / (route.length || 1)) * 100}%`, background: '#E63946', transition: 'width 0.5s ease' }} />
+            </div>
+          </div>
+
+          {/* Additional Details (Visible when expanded) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', opacity: isExpanded ? 1 : 0, transition: 'opacity 0.2s ease' }}>
+            <div style={{ padding: '16px', background: '#F9FAFB', borderRadius: '12px', border: '1px solid #F0F0F0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Clock size={16} color="#6B7280" />
+                <span style={{ fontSize: '14px', fontWeight: 600 }}>Emergency: {booking.emergencyType}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <MapPin size={16} color="#6B7280" />
+                <span style={{ fontSize: '14px', fontWeight: 600 }}>To: {booking.hospital.name}</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10B981', background: '#ecfdf5', padding: '12px', borderRadius: '12px', fontSize: '13px', fontWeight: 600 }}>
+              <ShieldCheck size={16} />
+              <span>Rotary Verified Ambulance Service</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
-};
-
-// Simple wrapper for Leaflet Marker to avoid direct import issues in some envs
-const LMarker = ({ position, icon }: { position: [number, number], icon: L.DivIcon }) => {
-  const map = useMap();
-  useEffect(() => {
-    const marker = L.marker(position, { icon }).addTo(map);
-    return () => { marker.remove(); };
-  }, [map, position, icon]);
-  return null;
-};
-
-export default TrackingScreen;
+}
