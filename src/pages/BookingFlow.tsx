@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, MapPin, Clock, ShieldCheck, Zap, AlertCircle, CheckCircle, HeartPulse, Droplets, Wind, Baby, Brain, AlertTriangle, Ambulance, Hospital as HospitalIcon } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { ArrowLeft, MapPin, Clock, ShieldCheck, Zap, AlertCircle, CheckCircle, HeartPulse, Droplets, Wind, Baby, Brain, AlertTriangle, Ambulance, Hospital as HospitalIcon, Navigation } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { hospitals, Hospital } from '../data/hospitals';
 import { useAppStore } from '../store/useAppStore';
@@ -37,6 +37,14 @@ function LocationPicker({ position, setPosition, setAddress }: {
   return <Marker position={position} icon={createUserIcon()} />;
 }
 
+function MapUpdater({ center }: { center: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, map.getZoom());
+  }, [center, map]);
+  return null;
+}
+
 export default function BookingFlow() {
   const navigate = useNavigate();
   const navLocation = useLocation();
@@ -59,6 +67,24 @@ export default function BookingFlow() {
       if (hospital) {
         setSelectedHospital(hospital);
       }
+    }
+
+    // Detect user location on mount
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const newPos: [number, number] = [latitude, longitude];
+          setLocation(prev => ({ ...prev, pos: newPos }));
+          reverseGeocode(latitude, longitude).then(address => {
+            setLocation(prev => ({ ...prev, address }));
+          });
+        },
+        (error) => {
+          console.error("Error detecting location:", error);
+        },
+        { enableHighAccuracy: true }
+      );
     }
   }, [navLocation.state]);
 
@@ -226,6 +252,23 @@ export default function BookingFlow() {
             <div style={{ height: '260px', borderRadius: '16px', overflow: 'hidden', border: '1px solid #F0F0F0' }}>
               <MapContainer center={location.pos} zoom={15} scrollWheelZoom={true}>
                 <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
+                <MapUpdater center={location.pos} />
+                <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 1000 }}>
+                  <button 
+                    onClick={() => {
+                      if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition((position) => {
+                          const newPos: [number, number] = [position.coords.latitude, position.coords.longitude];
+                          setLocation(prev => ({ ...prev, pos: newPos }));
+                          reverseGeocode(newPos[0], newPos[1]).then(address => setLocation(prev => ({ ...prev, address })));
+                        });
+                      }
+                    }}
+                    style={{ width: 40, height: 40, background: 'white', border: 'none', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  >
+                    <Navigation size={20} color="#E63946" />
+                  </button>
+                </div>
                 <LocationPicker 
                   position={location.pos} 
                   setPosition={(pos) => setLocation(prev => ({ ...prev, pos }))}

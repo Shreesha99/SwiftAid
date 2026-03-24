@@ -4,7 +4,7 @@ import { MapPin, Phone, ChevronRight, User, Search, Navigation, Filter, Ambulanc
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { hospitals, Hospital } from '../data/hospitals';
 import { useAppStore } from '../store/useAppStore';
-import { createHospitalIcon, createUserIcon, ROTARY_LOGO_URL } from '../utils/mapHelpers';
+import { createHospitalIcon, createUserIcon, reverseGeocode, ROTARY_LOGO_URL } from '../utils/mapHelpers';
 import { getClosestAmbulance, formatEta } from '../utils/ambulanceHelpers';
 import Logo from '../components/Logo';
 
@@ -37,7 +37,26 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpeciality, setSelectedSpeciality] = useState('All');
   const [mapCenter, setMapCenter] = useState<[number, number]>([12.9344, 77.6192]);
-  const userLocation: [number, number] = [12.9344, 77.6192]; // Koramangala, Bengaluru
+  const [userLocation, setUserLocation] = useState<[number, number]>([12.9344, 77.6192]);
+  const [userAddress, setUserAddress] = useState('Koramangala, Bengaluru');
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const newPos: [number, number] = [latitude, longitude];
+          setUserLocation(newPos);
+          setMapCenter(newPos);
+          reverseGeocode(latitude, longitude).then(setUserAddress);
+        },
+        (error) => {
+          console.error("Error detecting location:", error);
+        },
+        { enableHighAccuracy: true }
+      );
+    }
+  }, []);
 
   const specialities = ['All', ...new Set(hospitals.flatMap(h => h.specialities))];
 
@@ -52,6 +71,27 @@ export default function Home() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const handleLocateMe = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const newPos: [number, number] = [latitude, longitude];
+          setUserLocation(newPos);
+          setMapCenter(newPos);
+          reverseGeocode(latitude, longitude).then(setUserAddress);
+        },
+        (error) => {
+          console.error("Error detecting location:", error);
+          setMapCenter(userLocation); // Fallback to last known
+        },
+        { enableHighAccuracy: true }
+      );
+    } else {
+      setMapCenter(userLocation);
+    }
+  };
 
   return (
     <div style={{ padding: isDesktop ? '40px' : '0 20px 20px' }}>
@@ -76,7 +116,7 @@ export default function Home() {
             <p style={{ fontSize: '15px', color: '#6B7280' }}>Good morning, {userProfile.name}</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#1D3557', cursor: 'pointer' }}>
               <MapPin size={16} color="#E63946" />
-              <span style={{ fontWeight: 600 }}>Koramangala, Bengaluru</span>
+              <span style={{ fontWeight: 600 }}>{userAddress}</span>
             </div>
           </div>
 
@@ -199,13 +239,13 @@ export default function Home() {
               <MapContainer center={mapCenter} zoom={13} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
                 <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
                 <MapUpdater center={mapCenter} />
-                <MapControls onLocateMe={() => setMapCenter(userLocation)} />
+                <MapControls onLocateMe={handleLocateMe} />
                 
                 <Marker position={userLocation} icon={createUserIcon()}>
                   <Popup>
                     <div style={{ padding: '4px' }}>
                       <p style={{ fontWeight: 700, margin: 0 }}>Your Location</p>
-                      <p style={{ fontSize: '12px', color: '#6B7280', margin: '4px 0 0' }}>Koramangala, Bengaluru</p>
+                      <p style={{ fontSize: '12px', color: '#6B7280', margin: '4px 0 0' }}>{userAddress}</p>
                     </div>
                   </Popup>
                 </Marker>
