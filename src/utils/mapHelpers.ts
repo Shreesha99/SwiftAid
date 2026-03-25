@@ -169,3 +169,19 @@ export async function reverseGeocode(lat: number, lng: number) {
     return `${lat.toFixed(4)}, ${lng.toFixed(4)}`
   }
 }
+
+export async function searchLocation(query: string) {
+  if (!query || query.length < 3) return [];
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`);
+    const data = await res.json();
+    return data.map((item: any) => ({
+      display_name: item.display_name,
+      lat: parseFloat(item.lat),
+      lon: parseFloat(item.lon)
+    }));
+  } catch (err) {
+    console.error('Search failed:', err);
+    return [];
+  }
+}

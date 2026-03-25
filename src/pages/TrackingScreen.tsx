@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { Info, X, ChevronLeft, Ambulance, CheckCircle } from 'lucide-react';
+import { Info, X, ChevronLeft, Ambulance, CheckCircle, Hospital as HospitalIcon, ShieldCheck } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { createAmbulanceIcon, createUserIcon, createPulseIcon, fetchRoute, getBearing } from '../utils/mapHelpers';
 
@@ -185,14 +185,14 @@ export default function TrackingScreen() {
   const booking = bookings.find(b => b.id === bookingId);
   
   const [ambulancePos, setAmbulancePos] = useState<[number, number]>(
-    booking.driver?.currentLocation 
+    booking?.driver?.currentLocation 
       ? [booking.driver.currentLocation.lat, booking.driver.currentLocation.lng] 
       : [12.9592, 77.6444]
   );
   const [rotation, setRotation] = useState(0);
   const [route, setRoute] = useState<[number, number][]>([]);
-  const [eta, setEta] = useState(booking.driver?.initialEta || 8);
-  const [initialEta] = useState(booking.driver?.initialEta || 8);
+  const [eta, setEta] = useState(booking?.driver?.initialEta || 8);
+  const [initialEta] = useState(booking?.driver?.initialEta || 8);
   const [stepIndex, setStepIndex] = useState(0);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [isAutoCenter, setIsAutoCenter] = useState(true);
@@ -273,9 +273,9 @@ export default function TrackingScreen() {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [booking, initialEta]);
+  }, [booking, initialEta, updateBookingStatus]);
 
-  if (!booking) return <div>Booking not found</div>;
+  if (!booking) return <div style={{ padding: 40, textAlign: 'center' }}>Booking not found</div>;
 
   const handleConfirmCancel = () => {
     // 1. Stop animation
@@ -284,16 +284,7 @@ export default function TrackingScreen() {
     // 2. Update store
     cancelBooking(bookingId!);
     
-    // 3. Update localStorage
-    const bookingsLocal = JSON.parse(localStorage.getItem('swiftaid_bookings') || '[]');
-    const updated = bookingsLocal.map((b: any) =>
-      b.id === bookingId
-        ? { ...b, status: 'Cancelled', cancelledAt: Date.now() }
-        : b
-    );
-    localStorage.setItem('swiftaid_bookings', JSON.stringify(updated));
-    
-    // 4. Navigate home
+    // 3. Navigate home
     navigate('/', { replace: true });
   };
 
@@ -341,7 +332,7 @@ export default function TrackingScreen() {
             display: 'flex',
             alignItems: 'center',
           }}>
-            SWF-{bookingId}
+            {bookingId}
           </div>
         </div>
 
@@ -407,7 +398,7 @@ export default function TrackingScreen() {
 
       {/* Map Background */}
       <div style={{ position: 'absolute', inset: 0 }}>
-        <MapContainer center={ambulancePos} zoom={15} zoomControl={false}>
+        <MapContainer center={ambulancePos} zoom={15} zoomControl={false} style={{ height: '100%', width: '100%' }}>
           <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
           <MapController 
             route={route} 
@@ -625,61 +616,118 @@ export default function TrackingScreen() {
         </div>
       )}
 
-      {/* Arrival Flow */}
+      {/* Arrival Flow - Now a full view instead of a modal */}
       {isArrived && (
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'rgba(0,0,0,0.7)',
+          background: 'white',
           zIndex: 3000,
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 20,
+          flexDirection: 'column',
+          animation: 'fade-in 0.4s ease-out',
         }}>
-          <div style={{
-            background: 'white',
-            width: '100%',
-            maxWidth: 400,
-            borderRadius: 24,
-            padding: '40px 24px',
-            textAlign: 'center',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-          }}>
-            <div style={{
-              width: 80, height: 80, background: '#ECFDF5',
-              borderRadius: '50%', margin: '0 auto 24px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#10B981',
-            }}>
-              <CheckCircle size={40} />
+          {/* Top Header */}
+          <div style={{ padding: '24px 20px', display: 'flex', alignItems: 'center', gap: '16px', borderBottom: '1px solid #F3F4F6' }}>
+            <div style={{ width: 40, height: 40, borderRadius: '12px', background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10B981' }}>
+              <CheckCircle size={24} />
             </div>
-            <h2 style={{ fontSize: 24, fontWeight: 800, color: '#1D3557', marginBottom: 12 }}>
-              Ambulance Arrived
-            </h2>
-            <p style={{ color: '#6B7280', fontSize: 16, marginBottom: 32, lineHeight: 1.5 }}>
-              The ambulance has reached your location. Please proceed to the vehicle.
-            </p>
+            <div>
+              <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1D3557' }}>Ambulance Arrived</h2>
+              <p style={{ fontSize: 13, color: '#6B7280', fontWeight: 500 }}>Booking {bookingId}</p>
+            </div>
+          </div>
+
+          <div style={{ flex: 1, padding: '32px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+            {/* Hero Section */}
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                width: 100, height: 100, background: '#FEF2F2',
+                borderRadius: '32px', margin: '0 auto 24px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#E63946',
+                boxShadow: '0 12px 24px rgba(230, 57, 70, 0.15)'
+              }}>
+                <Ambulance size={48} />
+              </div>
+              <h1 style={{ fontSize: 26, fontWeight: 900, color: '#1D3557', marginBottom: 12, letterSpacing: '-0.02em' }}>
+                Help has arrived.
+              </h1>
+              <p style={{ color: '#4B5563', fontSize: 16, lineHeight: 1.6, fontWeight: 500, maxWidth: '280px', margin: '0 auto' }}>
+                The ambulance is at your location. Please look for vehicle <span style={{ color: '#E63946', fontWeight: 700 }}>{booking.driver?.vehicleNumber}</span>.
+              </p>
+            </div>
+
+            {/* Action Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <a href={`tel:${booking.driver?.phone}`} style={{
+                padding: '20px', background: '#F9FAFB', borderRadius: '20px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
+                textDecoration: 'none', border: '1px solid #F0F0F0'
+              }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3 a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#1D3557' }}>Call Driver</span>
+              </a>
+              
+              <button onClick={() => setShowTips(true)} style={{
+                padding: '20px', background: '#F9FAFB', borderRadius: '20px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
+                border: '1px solid #F0F0F0', cursor: 'pointer'
+              }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                  <Info size={20} />
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#1D3557' }}>View Tips</span>
+              </button>
+            </div>
+
+            {/* Medical Info Card (Simulated) */}
+            <div style={{ padding: '20px', background: '#1D3557', borderRadius: '24px', color: 'white', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <ShieldCheck size={20} color="#10B981" />
+                <span style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Medical Profile Shared</span>
+              </div>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>
+                Your emergency contacts and blood group info have been shared with the paramedics for faster care.
+              </p>
+            </div>
+
+            {/* Hospital Info */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', border: '1px solid #F0F0F0', borderRadius: '20px' }}>
+              <div style={{ width: 48, height: 48, borderRadius: '12px', background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E63946' }}>
+                <HospitalIcon size={24} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#9CA3AF', textTransform: 'uppercase' }}>Destination</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#1D3557' }}>{booking.hospital.name}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Actions */}
+          <div style={{ padding: '20px 20px 40px', borderTop: '1px solid #F3F4F6', background: 'white', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <button
               onClick={() => navigate(`/rate/${bookingId}`)}
               style={{
-                width: '100%', padding: '16px',
+                width: '100%', padding: '18px',
                 background: '#E63946', color: 'white',
-                border: 'none', borderRadius: 12,
-                fontSize: 16, fontWeight: 700, cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(230, 57, 70, 0.3)',
+                border: 'none', borderRadius: '16px',
+                fontSize: 16, fontWeight: 800, cursor: 'pointer',
+                boxShadow: '0 8px 20px rgba(230, 57, 70, 0.25)',
               }}
             >
-              Rate Experience
+              Complete & Rate Experience
             </button>
             <button
               onClick={() => navigate('/')}
               style={{
-                width: '100%', marginTop: 12, padding: '14px',
-                background: 'white', color: '#6B7280',
-                border: 'none', fontSize: 15, fontWeight: 600, cursor: 'pointer',
+                width: '100%', padding: '14px',
+                background: 'transparent', color: '#6B7280',
+                border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer',
               }}
             >
-              Back to Home
+              Return to Dashboard
             </button>
           </div>
         </div>

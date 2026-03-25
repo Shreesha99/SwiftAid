@@ -13,7 +13,7 @@ function MapControls({ onLocateMe }: { onLocateMe: () => void }) {
     <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 1000, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <button 
         onClick={onLocateMe}
-        style={{ width: 40, height: 40, background: 'white', border: 'none', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+        style={{ width: 40, height: 40, background: 'white', border: '1px solid #E2E8F0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
         title="Locate Me"
       >
         <Navigation size={20} color="#E63946" />
@@ -107,61 +107,90 @@ export default function Home() {
     }
   };
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
   return (
-    <div style={{ padding: isDesktop ? '40px' : '0 20px 20px' }}>
+    <div style={{ padding: isDesktop ? '40px' : '0 20px 20px', background: '#FDFDFD', minHeight: '100%' }}>
       {/* Mobile Header */}
       {!isDesktop && (
-        <header style={{ height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <header style={{ height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
           <Logo size={28} showText />
         </header>
       )}
 
-      <div style={{ display: 'flex', flexDirection: isDesktop ? 'row' : 'column', gap: '40px', maxWidth: '1200px' }}>
+      <div style={{ display: 'flex', flexDirection: isDesktop ? 'row' : 'column', gap: '48px', maxWidth: '1280px', margin: '0 auto' }}>
         
         {/* Left Half: Actions */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '32px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <p style={{ fontSize: '15px', color: '#6B7280' }}>Good morning, {userProfile.name}</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#1D3557', cursor: 'pointer' }}>
-              <MapPin size={16} color="#E63946" />
-              <span style={{ fontWeight: 600 }}>{userAddress}</span>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '40px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '32px', height: '1px', background: '#E63946' }} />
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#E63946', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Emergency Response</span>
+            </div>
+            <h1 style={{ fontSize: isDesktop ? '48px' : '36px', fontWeight: 800, color: '#1D3557', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+              {getGreeting()}, <span style={{ color: '#E63946' }}>{userProfile.name.split(' ')[0]}</span>
+            </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6B7280', marginTop: '8px', background: '#F3F4F6', padding: '8px 12px', borderRadius: '100px', width: 'fit-content', cursor: 'pointer' }}>
+              <MapPin size={14} color="#E63946" />
+              <span style={{ fontSize: '13px', fontWeight: 600 }}>{userAddress}</span>
             </div>
           </div>
 
-          <button 
-            onClick={() => navigate('/book')}
-            className="primary-button"
-            style={{ height: '96px', fontSize: '20px', gap: '12px' }}
-          >
-            <div style={{ width: '48px', height: '48px', background: 'rgba(255,255,255,0.2)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Ambulance size={32} color="white" />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-              <span>BOOK AMBULANCE</span>
-              <span style={{ fontSize: '13px', fontWeight: 500, opacity: 0.9 }}>
-                Nearest arrives in ~{formatEta(getClosestAmbulance(userLocation[0], userLocation[1]).eta)}
-              </span>
-            </div>
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <button 
+              onClick={() => navigate('/book')}
+              className="primary-button"
+              style={{ 
+                height: '110px', 
+                fontSize: '22px', 
+                gap: '16px', 
+                borderRadius: '24px',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              <div style={{ width: '56px', height: '56px', background: 'rgba(255,255,255,0.2)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Ambulance size={36} color="white" />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', zIndex: 1 }}>
+                <span style={{ fontWeight: 800 }}>BOOK AMBULANCE</span>
+                <span style={{ fontSize: '14px', fontWeight: 500, opacity: 0.9 }}>
+                  Nearest arrives in ~{formatEta(getClosestAmbulance(userLocation[0], userLocation[1]).eta)}
+                </span>
+              </div>
+            </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ flex: 1, height: '1px', background: '#F0F0F0' }} />
-            <span style={{ fontSize: '13px', color: '#9CA3AF', fontWeight: 500 }}>or call for free</span>
-            <div style={{ flex: 1, height: '1px', background: '#F0F0F0' }} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <a 
+                href="tel:108"
+                className="secondary-button"
+                style={{ textDecoration: 'none', gap: '8px', height: '56px', borderRadius: '16px', background: '#F1FAEE', border: '1px solid #A8DADC', color: '#1D3557' }}
+              >
+                <Phone size={18} />
+                <span style={{ fontWeight: 700 }}>Call 108</span>
+              </a>
+              <button 
+                onClick={() => navigate('/help')}
+                className="secondary-button"
+                style={{ gap: '8px', height: '56px', borderRadius: '16px', background: 'white', border: '1px solid #F0F0F0' }}
+              >
+                <Info size={18} />
+                <span style={{ fontWeight: 700 }}>First Aid</span>
+              </button>
+            </div>
           </div>
 
-          <a 
-            href="tel:108"
-            className="secondary-button"
-            style={{ textDecoration: 'none', gap: '12px' }}
-          >
-            <Phone size={20} />
-            <span>Call 108 — Free</span>
-          </a>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <h2 style={{ fontSize: '13px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>nearby hospitals</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h2 style={{ fontSize: '14px', fontWeight: 800, color: '#1D3557', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Nearby Hospitals</h2>
+              <span style={{ fontSize: '12px', color: '#E63946', fontWeight: 700, cursor: 'pointer' }}>View All</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {nearbyHospitals.map(h => (
                 <div 
                   key={h.id} 
@@ -170,26 +199,34 @@ export default function Home() {
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'space-between', 
-                    padding: '16px', 
+                    padding: '20px', 
                     background: 'white', 
                     border: '1px solid #F0F0F0', 
-                    borderRadius: '12px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
+                    borderRadius: '20px',
+                    cursor: 'pointer'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = '#E63946'}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = '#F0F0F0'}
                 >
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={{ fontWeight: 600 }}>{h.name}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ fontSize: '13px', color: '#6B7280' }}>
-                        {h.distance.toFixed(1)}km · {h.specialities.slice(0, 2).join(', ')}
-                      </span>
-                      <CheckCircle size={12} color="#10B981" />
+                  <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                    <div style={{ width: '48px', height: '48px', background: '#F9FAFB', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <HospitalIcon size={24} color="#E63946" />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontWeight: 700, fontSize: '16px', color: '#1D3557' }}>{h.name}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '13px', color: '#6B7280', fontWeight: 500 }}>
+                          {h.distance.toFixed(1)}km · {h.specialities[0]}
+                        </span>
+                        <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#D1D5DB' }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <CheckCircle size={12} color="#10B981" />
+                          <span style={{ fontSize: '11px', color: '#10B981', fontWeight: 700 }}>Verified</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <ChevronRight size={18} color="#D1D5DB" />
+                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <ChevronRight size={18} color="#1D3557" />
+                  </div>
                 </div>
               ))}
             </div>
@@ -198,37 +235,38 @@ export default function Home() {
           {/* Official Partner Badge */}
           <div style={{ 
             marginTop: 'auto', 
-            padding: '20px', 
-            background: '#F9FAFB', 
-            borderRadius: '16px', 
-            border: '1px solid #F0F0F0',
+            padding: '24px', 
+            background: 'linear-gradient(135deg, #1D3557 0%, #457B9D 100%)', 
+            borderRadius: '24px', 
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px'
+            gap: '16px',
+            color: 'white'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ 
                 fontSize: '10px', 
                 fontWeight: 800, 
-                color: '#6B7280', 
+                color: 'rgba(255,255,255,0.6)', 
                 textTransform: 'uppercase', 
-                letterSpacing: '0.1em' 
+                letterSpacing: '0.15em' 
               }}>
                 Official Partner
               </span>
-              <div style={{ flex: 1, height: '1px', background: '#E5E7EB' }} />
+              <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <img 
-                src={ROTARY_LOGO_URL} 
-                alt="Rotary International" 
-                height="32" 
-                style={{ objectFit: 'contain' }}
-                onError={(e: any) => { e.target.style.display = 'none' }}
-              />
+              <div style={{ width: '48px', height: '48px', background: 'white', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px' }}>
+                <img 
+                  src={ROTARY_LOGO_URL} 
+                  alt="Rotary International" 
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  onError={(e: any) => { e.target.style.display = 'none' }}
+                />
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '14px', fontWeight: 700, color: '#1D3557' }}>Rotary International</span>
-                <span style={{ fontSize: '12px', color: '#6B7280', fontWeight: 500 }}>300+ verified hospitals across Bengaluru</span>
+                <span style={{ fontSize: '16px', fontWeight: 800 }}>Rotary International</span>
+                <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>300+ verified hospitals across Bengaluru</span>
               </div>
             </div>
           </div>
@@ -260,7 +298,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div style={{ flex: 1, position: 'relative', height: isDesktop ? '530px' : '300px', borderRadius: '24px', overflow: 'hidden', border: '1px solid #F0F0F0', boxShadow: '0 4px 24px rgba(0,0,0,0.04)' }}>
+          <div style={{ position: 'relative', height: isDesktop ? '530px' : '400px', borderRadius: '24px', overflow: 'hidden', border: '1px solid #F0F0F0' }}>
             <MapContainer center={mapCenter} zoom={13} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
               <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
               <MapUpdater center={mapCenter} />
@@ -301,7 +339,7 @@ export default function Home() {
             </MapContainer>
 
             {/* Map Legend */}
-            <div style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 1000, background: 'white', padding: '8px 12px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', display: 'flex', gap: '16px' }}>
+            <div style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 1000, background: 'white', padding: '8px 12px', borderRadius: '12px', border: '1px solid #F0F0F0', display: 'flex', gap: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#E63946' }} />
                 <span style={{ fontSize: '11px', fontWeight: 600 }}>Hospital</span>

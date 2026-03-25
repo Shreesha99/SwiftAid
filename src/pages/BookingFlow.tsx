@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, MapPin, Clock, ShieldCheck, Zap, AlertCircle, CheckCircle, HeartPulse, Droplets, Wind, Baby, Brain, AlertTriangle, Ambulance, Hospital as HospitalIcon, Navigation } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, ShieldCheck, Zap, AlertCircle, CheckCircle, HeartPulse, Droplets, Wind, Baby, Brain, AlertTriangle, Ambulance, Hospital as HospitalIcon, Navigation, Search, X } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { hospitals, Hospital } from '../data/hospitals';
 import { useAppStore } from '../store/useAppStore';
-import { createUserIcon, reverseGeocode, haversine } from '../utils/mapHelpers';
+import { createUserIcon, reverseGeocode, haversine, searchLocation } from '../utils/mapHelpers';
 import { getClosestAmbulance, formatEta, formatDistance } from '../utils/ambulanceHelpers';
 
 const EMERGENCY_TYPES = [
@@ -37,13 +37,7 @@ function LocationPicker({ position, setPosition, setAddress }: {
   return <Marker position={position} icon={createUserIcon()} />;
 }
 
-function MapUpdater({ center }: { center: [number, number] }) {
-  const map = useMap();
-  useEffect(() => {
-    map.setView(center, map.getZoom());
-  }, [center, map]);
-  return null;
-}
+// Removed unused MapUpdater
 
 export default function BookingFlow() {
   const navigate = useNavigate();
@@ -60,6 +54,38 @@ export default function BookingFlow() {
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [bookingId, setBookingId] = useState('');
   const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (searchQuery.length >= 3) {
+        setIsSearching(true);
+        const results = await searchLocation(searchQuery);
+        setSuggestions(results);
+        setIsSearching(false);
+      } else {
+        setSuggestions([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const handleSelectSuggestion = (suggestion: any) => {
+    const newPos: [number, number] = [suggestion.lat, suggestion.lon];
+    setLocation({ pos: newPos, address: suggestion.display_name });
+    setSearchQuery('');
+    setSuggestions([]);
+  };
 
   useEffect(() => {
     if (navLocation.state?.hospitalId) {
@@ -174,9 +200,17 @@ export default function BookingFlow() {
   }
 
   return (
-    <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', background: 'white' }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'white', overflow: 'hidden' }}>
       {/* Header */}
-      <header style={{ padding: '24px 20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <header style={{ 
+        padding: '24px 20px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '16px',
+        borderBottom: '1px solid #F0F0F0',
+        background: 'white',
+        zIndex: 10
+      }}>
         <button onClick={handleBack} style={{ background: 'none', border: 'none', color: '#1D3557', cursor: 'pointer' }}>
           <ArrowLeft size={24} />
         </button>
@@ -192,7 +226,7 @@ export default function BookingFlow() {
         </div>
       </header>
 
-      <main style={{ flex: 1, padding: '0 20px 40px' }}>
+      <main style={{ flex: 1, padding: '24px 20px 40px', overflowY: 'auto' }}>
         {step === 1 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
             <div className="emergency-grid">
@@ -210,8 +244,7 @@ export default function BookingFlow() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '4px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
+                      cursor: 'pointer'
                     }}
                   >
                     <type.icon size={24} color={emergencyType === type.id ? '#E63946' : '#1D3557'} />
@@ -248,12 +281,95 @@ export default function BookingFlow() {
         )}
 
         {step === 2 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', height: '100%' }}>
-            <div style={{ height: '260px', borderRadius: '16px', overflow: 'hidden', border: '1px solid #F0F0F0' }}>
-              <MapContainer center={location.pos} zoom={15} scrollWheelZoom={true}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
+            {/* Search Input - Floating style on mobile, integrated on desktop */}
+            <div style={{ 
+              position: isDesktop ? 'relative' : 'absolute', 
+              top: isDesktop ? 0 : '16px', 
+              left: isDesktop ? 0 : '16px', 
+              right: isDesktop ? 0 : '16px', 
+              zIndex: 1001 
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px', 
+                padding: '14px 16px', 
+                background: 'white', 
+                border: '1px solid #F0F0F0', 
+                borderRadius: '16px'
+              }}>
+                <Search size={20} color="#E63946" />
+                <input 
+                  type="text"
+                  placeholder="Search for a location..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ flex: 1, border: 'none', outline: 'none', fontSize: '15px', fontWeight: 600, color: '#1D3557' }}
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                    <X size={18} color="#9CA3AF" />
+                  </button>
+                )}
+              </div>
+
+              {/* Suggestions List */}
+              {(suggestions.length > 0 || isSearching) && (
+                <div style={{ 
+                  position: 'absolute', 
+                  top: 'calc(100% + 8px)', 
+                  left: 0, 
+                  right: 0, 
+                  background: 'white', 
+                  borderRadius: '16px', 
+                  border: '1px solid #F0F0F0',
+                  maxHeight: '280px',
+                  overflowY: 'auto',
+                  zIndex: 1002
+                }}>
+                  {isSearching ? (
+                    <div style={{ padding: '20px', textAlign: 'center', color: '#9CA3AF', fontSize: '14px', fontWeight: 500 }}>Searching...</div>
+                  ) : (
+                    suggestions.map((s, i) => (
+                      <div 
+                        key={i}
+                        onClick={() => handleSelectSuggestion(s)}
+                        style={{ 
+                          padding: '16px', 
+                          borderBottom: i === suggestions.length - 1 ? 'none' : '1px solid #F9FAFB',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          gap: '14px',
+                          alignItems: 'flex-start'
+                        }}
+                      >
+                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <MapPin size={18} color="#E63946" />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ fontSize: '14px', color: '#1D3557', fontWeight: 700 }}>{s.display_name.split(',')[0]}</span>
+                          <span style={{ fontSize: '12px', color: '#6B7280', fontWeight: 500, lineHeight: 1.3 }}>{s.display_name}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Map Container - Much larger and more prominent */}
+            <div style={{ 
+              height: isDesktop ? '480px' : '340px', 
+              borderRadius: '24px', 
+              overflow: 'hidden', 
+              border: '1px solid #F0F0F0', 
+              position: 'relative',
+              width: '100%'
+            }}>
+              <MapContainer center={location.pos} zoom={15} scrollWheelZoom={true} zoomControl={false} style={{ height: '100%', width: '100%' }}>
                 <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
-                <MapUpdater center={location.pos} />
-                <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 1000 }}>
+                <div style={{ position: 'absolute', bottom: 20, right: 20, zIndex: 1000 }}>
                   <button 
                     onClick={() => {
                       if (navigator.geolocation) {
@@ -264,9 +380,20 @@ export default function BookingFlow() {
                         });
                       }
                     }}
-                    style={{ width: 40, height: 40, background: 'white', border: 'none', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    style={{ 
+                      width: 48, 
+                      height: 48, 
+                      background: 'white', 
+                      borderRadius: 14, 
+                      border: '1px solid #F0F0F0',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      cursor: 'pointer',
+                      color: '#E63946'
+                    }}
                   >
-                    <Navigation size={20} color="#E63946" />
+                    <Navigation size={24} />
                   </button>
                 </div>
                 <LocationPicker 
@@ -275,24 +402,75 @@ export default function BookingFlow() {
                   setAddress={(address) => setLocation(prev => ({ ...prev, address }))}
                 />
               </MapContainer>
+              
+              {/* Floating Address Indicator on Map */}
+              {!isDesktop && (
+                <div style={{ 
+                  position: 'absolute', 
+                  bottom: '20px', 
+                  left: '20px', 
+                  right: '80px', 
+                  background: 'white', 
+                  padding: '12px 16px', 
+                  borderRadius: '16px', 
+                  border: '1px solid #F0F0F0',
+                  zIndex: 1000,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981', flexShrink: 0 }} />
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#1D3557', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {location?.address.split(',')[0] || 'Detecting...'}
+                  </span>
+                </div>
+              )}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>Pickup address</span>
-                <div style={{ padding: '16px', background: '#F9FAFB', borderRadius: '12px', border: '1px solid #F0F0F0', fontSize: '15px', fontWeight: 600 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '20px', height: '20px', borderRadius: '6px', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <MapPin size={12} color="#E63946" />
+                  </div>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pickup address</span>
+                </div>
+                <div style={{ 
+                  padding: '18px', 
+                  background: 'white', 
+                  borderRadius: '16px', 
+                  border: '1px solid #F0F0F0', 
+                  fontSize: '15px', 
+                  fontWeight: 700, 
+                  color: '#1D3557',
+                  lineHeight: 1.4
+                }}>
                   {location?.address || 'Detecting location...'}
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>Add a note (optional)</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '20px', height: '20px', borderRadius: '6px', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <AlertCircle size={12} color="#6B7280" />
+                  </div>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Add a note (optional)</span>
+                </div>
                 <input 
                   type="text"
-                  placeholder="e.g. Near the blue gate"
+                  placeholder="e.g. Near the blue gate, 2nd floor"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  style={{ padding: '16px', borderRadius: '12px', border: '1px solid #F0F0F0', outline: 'none', fontSize: '15px' }}
+                  style={{ 
+                    padding: '18px', 
+                    borderRadius: '16px', 
+                    border: '1px solid #F0F0F0', 
+                    outline: 'none', 
+                    fontSize: '15px', 
+                    fontWeight: 600,
+                    background: 'white',
+                    color: '#1D3557'
+                  }}
                 />
               </div>
             </div>
@@ -301,7 +479,7 @@ export default function BookingFlow() {
 
         {step === 3 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div style={{ padding: '24px', background: 'white', border: '1px solid #F0F0F0', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+            <div style={{ padding: '24px', background: 'white', border: '1px solid #F0F0F0', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <span style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase' }}>Emergency</span>
@@ -357,7 +535,12 @@ export default function BookingFlow() {
       </main>
 
       {/* Bottom Action */}
-      <footer style={{ padding: '20px', borderTop: '1px solid #F0F0F0', background: 'white' }}>
+      <footer style={{ 
+        padding: '20px', 
+        borderTop: '1px solid #F0F0F0', 
+        background: 'white',
+        zIndex: 10
+      }}>
         {step < 3 ? (
           <button 
             className="primary-button" 
